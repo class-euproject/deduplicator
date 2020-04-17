@@ -1,9 +1,10 @@
 #include "ClassAggregatorMessage.h"
 
 ClassAggregatorMessage::ClassAggregatorMessage() {
-}
-
-ClassAggregatorMessage::~ClassAggregatorMessage() {
+    pthread_mutexattr_t mutexattr;
+    pthread_mutexattr_init(&mutexattr);
+    pthread_mutex_init(&mutex, &mutexattr);
+    pthread_mutexattr_destroy(&mutexattr);
 }
 
 bool ClassAggregatorMessage::deleteOld(MasaMessage m) {

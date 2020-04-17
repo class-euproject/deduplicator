@@ -12,7 +12,7 @@ protected:
     bool deleteOld(MasaMessage m);
 public:
     ClassAggregatorMessage();
-    ~ClassAggregatorMessage();
+    ~ClassAggregatorMessage() {};
     void insertMessage(MasaMessage m);
     std::vector<MasaMessage> getMessages();
     
