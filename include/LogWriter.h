@@ -10,6 +10,15 @@
 #include <iomanip>
 #include "../masa_protocol/include/messages.hpp"
 
+inline char separator()
+{
+#ifdef _WIN32
+    return '\\';
+#else
+    return '/';
+#endif
+}
+
 class LogWriter {
 
 private:

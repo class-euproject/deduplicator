@@ -9,19 +9,19 @@ std::string LogWriter::createSubDirectories() {
     if(mkdir((const char *)new_folder.c_str(), 0777)){
         std::cout<<"create year folder\n";
     }
-    new_folder = new_folder + '/' + std::to_string(tm_yday);
+    new_folder = new_folder + separator() + std::to_string(tm_yday);
     if(mkdir((const char *)new_folder.c_str(), 0777)){
         std::cout<<"create day folder\n";
     }
-    new_folder = new_folder + '/' + std::to_string(tm_hour);
+    new_folder = new_folder + separator() + std::to_string(tm_hour);
     if(mkdir((const char *)new_folder.c_str(), 0777)){
         std::cout<<"create hour folder\n";
     }
-    new_folder = new_folder + '/' + std::to_string(tm_min);
+    new_folder = new_folder + separator() + std::to_string(tm_min);
     if(mkdir((const char *)new_folder.c_str(), 0777)){
         std::cout<<"create min folder\n";
     }
-    return new_folder + '/';
+    return new_folder + separator();
 }
 
 std::string LogWriter::getTimePath() {
