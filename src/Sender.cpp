@@ -38,7 +38,7 @@ void Sender::end() {
 void * Sender::send(void *n) {
     std::vector<MasaMessage> m; //but m must be contain only one message.
 
-    while(true){
+    while(gRun){
         std::cout<<"get m\n";
         m = this->cm->getMessages();
         if(m.size() == 0)
