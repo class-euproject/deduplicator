@@ -3,9 +3,11 @@ cmake_minimum_required(VERSION 3.5)
 project (classAggregator)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-unused-variable")
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol ${CMAKE_CURRENT_SOURCE_DIR}/tracker_CLASS)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lgdal -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-unused-variable")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
+                    ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol 
+                    ${CMAKE_CURRENT_SOURCE_DIR}/tracker_CLASS)
 
 #-------------------------------------------------------------------------------
 # CUDA
@@ -31,7 +33,14 @@ find_package(OpenCV REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENCV")
 
 find_package(yaml-cpp REQUIRED)
-#include_directories(/usr/include/gdal)
+
+include_directories(/usr/include/gdal)
+
+#-------------------------------------------------------------------------------
+# Submodules
+#-------------------------------------------------------------------------------
+add_subdirectory(tracker_CLASS/c++)
+#add_subdirectory(masa_protocol)
 
 
 #-------------------------------------------------------------------------------
@@ -44,21 +53,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
 include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${NVINFER_INCLUDES} ${CUDNN_INCLUDE_DIRS})
 
 file(GLOB classAggregator_SRC "src/*.cpp")
-set(classAggregator_LIBS  ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} yaml-cpp)
-
+set(classAggregator_LIBS  ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} yaml-cpp gdal class-tracker)
 add_library(classAggregator SHARED ${classAggregator_SRC})
-#target_link_libraries(classAggregator ${classAggregator_LIBS} nvinfer_plugin)
+target_link_libraries(classAggregator ${classAggregator_LIBS})
 
-#static 
-add_library(classAggregator_static STATIC ${classAggregator_SRC})
-target_link_libraries(classAggregator_static ${classAggregator_LIBS})
-#static 
 
+#-------------------------------------------------------------------------------
+# Build executables
+#-------------------------------------------------------------------------------
 add_executable(main demo/main.cpp)
 target_link_libraries(main classAggregator)
-
-
-
-
-
-
