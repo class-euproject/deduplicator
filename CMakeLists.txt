@@ -36,6 +36,8 @@ find_package(yaml-cpp REQUIRED)
 
 include_directories(/usr/include/gdal)
 
+include_directories(/usr/include/python2.7)
+
 #-------------------------------------------------------------------------------
 # Submodules
 #-------------------------------------------------------------------------------
