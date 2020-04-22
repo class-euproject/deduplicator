@@ -11,6 +11,8 @@ struct Parameters_t {
     std::vector<int> outputPortList;
     std::vector<std::string> outputIpList;
     bool visualization;
+    std::string tifFile;
+    std::string pngFile;
 };
 
 std::string delimiter = ", ";       // The delimiter chosen to divide the elements in the Yaml file

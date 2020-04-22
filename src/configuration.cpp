@@ -35,6 +35,8 @@ void readParametersYaml(const std::string &camerasParams, Parameters_t *par) {
     par->outputPortList = strListToIntList(getParamList(config["output_ports"].as<std::string>()));
     par->outputIpList = getParamList(config["output_ips"].as<std::string>());
     par->visualization = config["visualization"].as<bool>();
+    par->tifFile = config["tif_map"].as<std::string>();
+    par->pngFile = config["png_map"].as<std::string>();
 }
 
 /* 
@@ -47,6 +49,8 @@ bool readParameters(int argc, char **argv, Parameters_t *param) {
         param->outputPortList.push_back(9999);
         param->outputIpList.push_back("127.0.0.1");
         param->visualization = false;
+        param->tifFile = "../demo/data/MASA_4670.tif";
+        param->pngFile = "../demo/data/MASA_4670.png";
         return true;
     }
     std::string help =  "class-aggregator demo\nCommand:\n"
