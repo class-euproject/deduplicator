@@ -14,18 +14,18 @@ class Sender {
 
 private:
     ClassAggregatorMessage *cm;
-    std::vector<std::string> ip_list;
-    std::vector<int> port_list;
-    std::vector<int> socket_desc_list;
-    int num_comm;
+    std::vector<std::string> ipList;
+    std::vector<int> portList;
+    std::vector<int> socketDescList;
+    int numComm;
     std::vector<Communicator<MasaMessage>> *comm;
     LogWriter *lw;
-    pthread_t writer_thread;
+    pthread_t writerThread;
 
 public:
     Sender(ClassAggregatorMessage &sharedMessage,
-            std::vector<std::string> ipList,
-            std::vector<int> portList);
+            std::vector<std::string> ipList_,
+            std::vector<int> portList_);
     ~Sender();
     void start();
     void end();

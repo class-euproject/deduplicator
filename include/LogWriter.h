@@ -25,17 +25,15 @@ private:
     std::string path;   //"./demo/data/class_fog_log/"
     struct stat st = {0};
     time_t rawtime;
-    struct tm *tm_struct;
-    int tm_year, tm_real_year, tm_hour, tm_yday, tm_min;
+    struct tm *tmStruct;
+    int tmYear, tmRealYear, tmHour, tmYday, tmMin;
 
     std::string createSubDirectories();
     std::string getTimePath();
 
 public:
-    // Message *m;
-    int message_count;
     pthread_mutex_t mutex;
-    pthread_t writer_thread;
+    pthread_t writerThread;
 
     LogWriter(std::string fileSavingPath);
     ~LogWriter() {};

@@ -7,7 +7,7 @@
 
 class ClassAggregatorMessage {
 protected:
-    std::vector<MasaMessage> message_list;
+    std::vector<MasaMessage> messageList;
     pthread_mutex_t mutex;
     bool deleteOld(MasaMessage m);
 public:

@@ -15,9 +15,9 @@ class Receiver {
 private:
     ClassAggregatorMessage *cm;
     LogWriter *lw;
-    pthread_t sniffer_thread;
+    pthread_t snifferThread;
     int port;
-    int socket_desc;
+    int socketDesc;
     Communicator<MasaMessage> *comm;
 public:    
     Receiver(ClassAggregatorMessage &sharedMessage,

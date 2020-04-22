@@ -5,19 +5,19 @@ LogWriter::LogWriter(std::string fileSavingPath) {
 }
 
 std::string LogWriter::createSubDirectories() {
-    std::string new_folder = path + std::to_string(tm_real_year);
+    std::string new_folder = path + std::to_string(tmRealYear);
     if(mkdir((const char *)new_folder.c_str(), 0777)){
         std::cout<<"create year folder\n";
     }
-    new_folder = new_folder + separator() + std::to_string(tm_yday);
+    new_folder = new_folder + separator() + std::to_string(tmYday);
     if(mkdir((const char *)new_folder.c_str(), 0777)){
         std::cout<<"create day folder\n";
     }
-    new_folder = new_folder + separator() + std::to_string(tm_hour);
+    new_folder = new_folder + separator() + std::to_string(tmHour);
     if(mkdir((const char *)new_folder.c_str(), 0777)){
         std::cout<<"create hour folder\n";
     }
-    new_folder = new_folder + separator() + std::to_string(tm_min);
+    new_folder = new_folder + separator() + std::to_string(tmMin);
     if(mkdir((const char *)new_folder.c_str(), 0777)){
         std::cout<<"create min folder\n";
     }
@@ -26,12 +26,12 @@ std::string LogWriter::createSubDirectories() {
 
 std::string LogWriter::getTimePath() {
     time(&rawtime);
-    tm_struct = localtime(&rawtime);
-    tm_year = tm_struct->tm_year;
-    tm_real_year = tm_year + 1900;
-    tm_hour = tm_struct->tm_hour;
-    tm_yday = tm_struct->tm_yday;
-    tm_min = tm_struct->tm_min;
+    tmStruct = localtime(&rawtime);
+    tmYear = tmStruct->tm_year;
+    tmRealYear = tmYear + 1900;
+    tmHour = tmStruct->tm_hour;
+    tmYday = tmStruct->tm_yday;
+    tmMin = tmStruct->tm_min;
 
     return createSubDirectories();
 }

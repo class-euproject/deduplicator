@@ -9,10 +9,10 @@ ClassAggregatorMessage::ClassAggregatorMessage() {
 
 bool ClassAggregatorMessage::deleteOld(MasaMessage m) {
     bool deleted = false;
-    auto it = message_list.begin();
-    while (it != message_list.end()) {
+    auto it = messageList.begin();
+    while (it != messageList.end()) {
         if (it->cam_idx == m.cam_idx && it->t_stamp_ms < m.t_stamp_ms) {
-            it = message_list.erase(it);
+            it = messageList.erase(it);
             deleted = true;
         }
         else 
@@ -25,15 +25,15 @@ void ClassAggregatorMessage::insertMessage(MasaMessage m) {
     pthread_mutex_lock(&mutex);
     if (deleteOld(m)) 
         std::cout<<"some message are deleted -- you are too slow\n";
-    message_list.push_back(m);
+    messageList.push_back(m);
     pthread_mutex_unlock(&mutex);
 }
 
 std::vector<MasaMessage> ClassAggregatorMessage::getMessages() {
     pthread_mutex_lock(&mutex);
-    std::vector<MasaMessage> copy_list = message_list;
-    message_list.clear();
+    std::vector<MasaMessage> copy_list = messageList;
+    messageList.clear();
     pthread_mutex_unlock(&mutex);
-    assert(copy_list.size() != 0);
+    // assert(copy_list.size() != 0);
     return copy_list;
 }
