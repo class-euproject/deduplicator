@@ -14,5 +14,6 @@ unsigned long long time_in_ms();
 void coord2pixel(double lat, double lon, int &x, int &y, double *adfGeoTransform);
 uint8_t orientation_to_uint8(float yaw);
 uint8_t speed_to_uint8(float vel);
+void GPS2pixel(double *adfGeoTransform, double lat, double lon, int &x, int &y);
 
 #endif /* UTILS_H */

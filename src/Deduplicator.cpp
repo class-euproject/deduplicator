@@ -23,7 +23,9 @@ void create_message_from_tracker(const std::vector<Tracker> &trackers, MasaMessa
 
 Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage, 
                             ClassAggregatorMessage &outputSharedMessage,
-                            std::string tifFile) {
+                            std::string tifFile,
+                            AggregatorViewer &v,
+                            bool visual) {
     inCm = &inputSharedMessage;
     outCm = &outputSharedMessage;
     adfGeoTransform = (double *)malloc(6 * sizeof(double));
@@ -35,6 +37,8 @@ Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage,
     trVerbose = false;
     gc.initialiseReference(44.655540, 10.934315, 0);
     t = new Tracking(nStates, dt, initialAge, ageThreshold);
+    viewer = &v;
+    show = visual;
 }
 
 Deduplicator::~Deduplicator() {
@@ -55,8 +59,12 @@ void * Deduplicator::deduplicate(void *n) {
     std::vector<Data> cur_message;
     std::vector<MasaMessage> input_messages; 
     MasaMessage deduplicate_message;
+    std::vector<cv::Point2f> map_pixels;
     double east, north, up;
-    while(true){
+    double latitude, longitude, altitude;
+    int map_pix_x, map_pix_y; 
+    std::vector<tracker_line>  lines;
+    while(gRun){
         // TODO: introduce some delay? (active wait) 
         cur_message.clear();
         
@@ -72,10 +80,29 @@ void * Deduplicator::deduplicate(void *n) {
                     cur_message.push_back(Data(east, north, 0, m.objects.at(i).category));
             }
         }
-        t->Track(cur_message,this->trVerbose);
+        this->t->Track(cur_message,this->trVerbose);
+
+        //visualize the trackers
+        lines.clear();
+        for(auto tr : this->t->getTrackers()) {
+            if(tr.pred_list_.size()) {
+                tracker_line line;
+                line.color = tk::gui::Color_t {tr.r_, tr.g_, tr.b_, 255};
+                for(auto traj: tr.pred_list_) {
+                    //convert from meters to GPS
+                    this->gc.enu2Geodetic(traj.x_, traj.y_, 0, &latitude, &longitude, &altitude);
+                    //convert from GPS to map pixels
+                    GPS2pixel(this->adfGeoTransform, latitude, longitude, map_pix_x, map_pix_y);
+
+                    line.points.push_back(this->viewer->convertPosition(map_pix_x,  map_pix_y, -0.004));
+                }
+                lines.push_back(line);
+            }
+        }
+        if(this->show)
+            this->viewer->setFrameData(lines);
 
         create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
-        
         std::cout<<"insert m\n";
         this->outCm->insertMessage(deduplicate_message);
     }

@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "ClassAggregatorMessage.h"
 #include "utils.h"
+#include "AggregatorViewer.h"
 #include "../tracker_CLASS/c++/include/Data.h"
 #include "../tracker_CLASS/c++/include/Tracking.h"
 
@@ -24,11 +25,14 @@ private:
     geodetic_converter::GeodeticConverter gc;
 
     pthread_t deduplicatorThread;
-
+    AggregatorViewer *viewer;
+    bool show;
 public:
     Deduplicator(ClassAggregatorMessage &inputSharedMessage, 
                  ClassAggregatorMessage &outputSharedMessage,
-                 std::string tifFile);
+                 std::string tifFile,
+                 AggregatorViewer &v,
+                 bool visual);
     ~Deduplicator();
     void start();
     void end();

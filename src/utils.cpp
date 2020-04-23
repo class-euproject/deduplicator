@@ -57,3 +57,9 @@ uint8_t speed_to_uint8(float vel)
     uint8_t velocity = uint8_t(std::abs(vel * 3.6 * 2));
     return velocity;
 }  
+
+void GPS2pixel(double *adfGeoTransform, double lat, double lon, int &x, int &y){
+    //conversion from GPS to pixels, via georeferenced map parameters
+    x = int(round( (lon - adfGeoTransform[0]) / adfGeoTransform[1]) );
+    y = int(round( (lat - adfGeoTransform[3]) / adfGeoTransform[5]) );
+}
