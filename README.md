@@ -29,6 +29,20 @@ sudo apt-get install -y libgles2-mesa-dev libglew-dev libmatio-dev libpcap-dev
 bash scripts/install-glfw-3.3.sh
 ```
 
+### Demo dependencies
+
+required for demo (downloads some data)
+```
+bash scripts/download_configuration_data.sh
+```
+
+## How to initialize or update submodule
+
+```
+git submodule update --init --recursive     # initialize
+git submodule update --remote --recursive   # update all
+```
+
 ## How to compile this repo
 
 Build with cmake.
@@ -41,9 +55,29 @@ cmake ..
 make
 ```
 
-## How to initialize or update submodule
+## How to use
+
+### Configuration
+Edit "demo/class_aggregator_configuration_file.yaml":
+
+* input_ports:   specify the listening port list
+* output_ports:  specify the forwarding port list
+* output_ips:    specify the forwarding ip list
+* visualization: specify if or not to show the map viewer
+
+N.B the ports number must equal to ips number
+
+### Demo
 
 ```
-git submodule update --init --recursive     # initialize
-git submodule update --remote --recursive   # update all
+cd build/
+./class-aggregator -i path-to-configuration-file 
+#./class-aggregator -i ../demo/class_aggregator_configuration_file.yaml
+```
+
+### Test
+On an other terminal:
+```
+cd build/
+./test-aggregator
 ```
