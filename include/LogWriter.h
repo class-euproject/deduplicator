@@ -1,6 +1,7 @@
 #ifndef LOGWRITER_H
 #define LOGWRITER_H
 
+#include <iostream>
 #include <assert.h>
 #include <string>
 #include <sys/stat.h>
