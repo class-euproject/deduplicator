@@ -21,11 +21,12 @@ int main(int argc, char **argv) {
     gRun = true;
 
     // start the viewer
-    fog::AggregatorViewer v(param.pngFile);
-    v.setWindowName("Map");
-    v.setBackground(tk::gui::color::DARK_GRAY);
-    v.initOnThread();
-    
+    fog::AggregatorViewer v(param.pngFile, param.visualization);
+    if(param.visualization) {
+        v.setWindowName("Map");
+        v.setBackground(tk::gui::color::DARK_GRAY);
+        v.initOnThread();
+    }
     // TODO: iterate on ports:
     if (param.inputPortList.size() > 1)
         std::cerr<<"many input ports: no supported. Use only the first...\n";

@@ -30,7 +30,9 @@ private:
     tk::common::Vector3<float> pose;
     tk::common::Vector3<float> size;
 public:
-    AggregatorViewer(const std::string image);
+    bool show;
+    
+    AggregatorViewer(const std::string image, const bool to_show);
     ~AggregatorViewer() {}
     void init();
     void draw();
