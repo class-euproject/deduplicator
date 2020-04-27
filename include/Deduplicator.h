@@ -2,6 +2,8 @@
 #define DEDUPLICATOR_H
 
 #include <assert.h>
+#include <chrono>
+#include <thread>
 #include "ClassAggregatorMessage.h"
 #include "utils.h"
 #include "AggregatorViewer.h"
@@ -36,6 +38,7 @@ public:
     ~Deduplicator();
     void start();
     void end();
+    void show_updates(double latitude, double longitude, double altitude);
     void *deduplicate(void *n);
 };
 

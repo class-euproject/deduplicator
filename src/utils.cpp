@@ -24,12 +24,6 @@ unsigned long long time_in_ms() {
     return t_stamp_ms;
 }
 
-void coord2pixel(double lat, double lon, int &x, int &y, double *adfGeoTransform)
-{
-    x = int(round((lon - adfGeoTransform[0]) / adfGeoTransform[1]));
-    y = int(round((lat - adfGeoTransform[3]) / adfGeoTransform[5]));
-}
-
 /**
  *  Convert orientation from radian to quantized degree (from 360 to 255)
 */
