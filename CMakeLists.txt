@@ -40,16 +40,16 @@ include_directories(/usr/include/python2.7)
 # Submodules
 #-------------------------------------------------------------------------------
 add_subdirectory(tkCommon)
-add_subdirectory(tracker_CLASS/c++)
+add_subdirectory(class-tracker)
 #add_subdirectory(masa_protocol)
 
 
 #-------------------------------------------------------------------------------
 # Build Libraries
 #-------------------------------------------------------------------------------
-#include_directories("~/repos/cereal/include" ${CMAKE_CURRENT_SOURCE_DIR}/tracker_CLASS/c++/src /usr/include/python2.7)
+#include_directories("~/repos/cereal/include" ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/src /usr/include/python2.7)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/tracker_CLASS/c++/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
 include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${NVINFER_INCLUDES} ${CUDNN_INCLUDE_DIRS})

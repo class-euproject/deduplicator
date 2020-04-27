@@ -7,8 +7,8 @@
 #include "ClassAggregatorMessage.h"
 #include "utils.h"
 #include "AggregatorViewer.h"
-#include "../tracker_CLASS/c++/include/Data.h"
-#include "../tracker_CLASS/c++/include/Tracking.h"
+#include "../class-tracker/include/obj.h"
+#include "../class-tracker/include/Tracking.h"
 
 namespace fog {
 
@@ -20,9 +20,8 @@ private:
     double *adfGeoTransform;
     // Initialize tracker information
     // std::vector<Tracker> trackers;
-    Tracking *t;
+    tracking::Tracking *t;
     int initialAge;
-    int ageThreshold;
     int nStates;
     float dt;
     bool trVerbose;

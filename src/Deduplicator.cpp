@@ -2,20 +2,20 @@
 
 namespace fog {
 
-void create_message_from_tracker(const std::vector<Tracker> &trackers, MasaMessage *m, 
+void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers, MasaMessage *m, 
                                  geodetic_converter::GeodeticConverter &gc, double *adfGeoTransform) {
     m->t_stamp_ms = time_in_ms();
     m->num_objects = trackers.size();
     m->objects.clear();
     double lat, lon, alt;
     for (auto t : trackers) {
-        if (t.pred_list_.size() > 0) {
-            Categories cat = (Categories) t.class_;
-            gc.enu2Geodetic(t.pred_list_.back().x_, t.pred_list_.back().y_, 0, &lat, &lon, &alt);
+        if (t.predList.size() > 0) {
+            Categories cat = (Categories) t.cl;
+            gc.enu2Geodetic(t.predList.back().x, t.predList.back().y, 0, &lat, &lon, &alt);
             int pix_x, pix_y;
             GPS2pixel(adfGeoTransform, lat, lon, pix_x, pix_y);
-            uint8_t orientation = orientation_to_uint8(t.pred_list_.back().yaw_);
-            uint8_t velocity = speed_to_uint8(t.pred_list_.back().vel_);
+            uint8_t orientation = orientation_to_uint8(t.predList.back().yaw);
+            uint8_t velocity = speed_to_uint8(t.predList.back().vel);
             RoadUser r{static_cast<float>(lat), static_cast<float>(lon), velocity, orientation, cat};
             //std::cout << std::setprecision(10) << r.latitude << " , " << r.longitude << " " << int(r.speed) << " " << int(r.orientation) << " " << r.category << std::endl;
             m->objects.push_back(r);
@@ -32,13 +32,12 @@ Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage,
     outCm = &outputSharedMessage;
     adfGeoTransform = (double *)malloc(6 * sizeof(double));
     readTiff((char *)tifFile.c_str(), adfGeoTransform);
-    initialAge = -5;//8; //15; //-5;
-    ageThreshold = -17;//0;//-17; //-8;  // 3 frames, 4 cameras --> 12
+    initialAge = 5;//8; //15; //-5;
     nStates = 5;
     dt = 0.03;
     trVerbose = false;
     gc.initialiseReference(44.655540, 10.934315, 0);
-    t = new Tracking(nStates, dt, initialAge, ageThreshold);
+    t = new tracking::Tracking(nStates, dt, initialAge);
     viewer = &v;
     show = visual;
 }
@@ -62,12 +61,12 @@ void Deduplicator::show_updates(double latitude, double longitude, double altitu
     int map_pix_x, map_pix_y; 
     std::vector<tracker_line>  lines;
     for(auto tr : this->t->getTrackers()) {
-        if(tr.pred_list_.size()) {
+        if(tr.predList.size()) {
             tracker_line line;
-            line.color = tk::gui::Color_t {tr.r_, tr.g_, tr.b_, 255};
-            for(auto traj: tr.pred_list_) {
+            line.color = tk::gui::Color_t {tr.r, tr.g, tr.b, 255};
+            for(auto traj: tr.predList) {
                 //convert from meters to GPS
-                this->gc.enu2Geodetic(traj.x_, traj.y_, 0, &latitude, &longitude, &altitude);
+                this->gc.enu2Geodetic(traj.x, traj.y, 0, &latitude, &longitude, &altitude);
                 //convert from GPS to map pixels
                 GPS2pixel(this->adfGeoTransform, latitude, longitude, map_pix_x, map_pix_y);
 
@@ -83,7 +82,7 @@ void Deduplicator::show_updates(double latitude, double longitude, double altitu
 }
 
 void * Deduplicator::deduplicate(void *n) {
-    std::vector<Data> cur_message;
+    std::vector<tracking::obj_m> cur_message;
     std::vector<MasaMessage> input_messages; 
     MasaMessage deduplicate_message;
     std::vector<cv::Point2f> map_pixels;
@@ -103,10 +102,10 @@ void * Deduplicator::deduplicate(void *n) {
         for(auto m : input_messages) {
             for(size_t i = 0; i < m.objects.size(); i++) {
                     this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
-                    cur_message.push_back(Data(east, north, 0, m.objects.at(i).category));
+                    cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category));
             }
         }
-        this->t->Track(cur_message,this->trVerbose);
+        this->t->track(cur_message,this->trVerbose);
 
         show_updates(latitude, longitude, altitude);
 
