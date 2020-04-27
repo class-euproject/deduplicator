@@ -5,6 +5,8 @@
 #include <assert.h>
 #include "../masa_protocol/include/messages.hpp"
 
+namespace fog {
+
 class ClassAggregatorMessage {
 protected:
     std::vector<MasaMessage> messageList;
@@ -18,5 +20,6 @@ public:
     
     
 };
+}
 
 #endif /* CAMESSAGE_H */

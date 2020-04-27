@@ -1,5 +1,7 @@
 #include "Aggregator.h"
 
+namespace fog {
+
 Aggregator::Aggregator(ClassAggregatorMessage &inputSharedMessage, 
                        ClassAggregatorMessage &outputSharedMessage,
                        AggregatorViewer &v,
@@ -49,4 +51,5 @@ void * Aggregator::aggregate(void *n) {
         input_messages.clear();
     }
     return (void *)NULL;
+}
 }

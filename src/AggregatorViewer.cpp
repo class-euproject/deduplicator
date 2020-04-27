@@ -1,5 +1,7 @@
 #include "AggregatorViewer.h"
 
+namespace fog {
+
 AggregatorViewer::AggregatorViewer(const std::string image) {
     frame = cv::imread(image);
     frame_width = frame.cols;
@@ -60,4 +62,5 @@ tk::common::Vector3<float> AggregatorViewer::convertPosition(int x, int y, float
     float new_x = ((float)x/(float)frame_width - 0.5)*yScale;
     float new_y = -((float)y/(float)frame_height -0.5)*xScale;
     return tk::common::Vector3<float>{new_x, new_y, z};
+}
 }

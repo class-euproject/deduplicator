@@ -10,6 +10,8 @@
 #include "../tracker_CLASS/c++/include/Data.h"
 #include "../tracker_CLASS/c++/include/Tracking.h"
 
+namespace fog {
+
 typedef void * (*THREADFUNCPTR)(void *);
 
 class Deduplicator {
@@ -41,5 +43,6 @@ public:
     void show_updates(double latitude, double longitude, double altitude);
     void *deduplicate(void *n);
 };
+}
 
 #endif /* DEDUPLICATOR_H */

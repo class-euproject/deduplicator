@@ -11,6 +11,8 @@
 #include <iomanip>
 #include "../masa_protocol/include/messages.hpp"
 
+namespace fog {
+    
 inline char separator()
 {
 #ifdef _WIN32
@@ -41,6 +43,7 @@ public:
     void write(MasaMessage m);
 
 };
+}
 
 
 #endif /* LOGWRITER_H */

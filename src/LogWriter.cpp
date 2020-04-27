@@ -1,5 +1,7 @@
 #include "LogWriter.h"
 
+namespace fog {
+
 LogWriter::LogWriter(std::string fileSavingPath) {
     path = fileSavingPath;
 }
@@ -41,4 +43,5 @@ void LogWriter::write(MasaMessage m) {
            << std::fixed << std::setprecision(2) << static_cast<float>(ru.speed) << " " << static_cast<float>(ru.orientation) << "\n";
     }
     of.close();
+}
 }

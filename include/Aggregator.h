@@ -8,6 +8,8 @@
 #include "utils.h"
 #include "AggregatorViewer.h"
 
+namespace fog {
+
 typedef void * (*THREADFUNCPTR)(void *);
 
 class Aggregator {
@@ -26,5 +28,6 @@ public:
     void end();
     void *aggregate(void *n);
 };
+}
 
 #endif /* AGGREGATOR_H */

@@ -1,5 +1,7 @@
 #include "ClassAggregatorMessage.h"
 
+namespace fog {
+
 ClassAggregatorMessage::ClassAggregatorMessage() {
     pthread_mutexattr_t mutexattr;
     pthread_mutexattr_init(&mutexattr);
@@ -36,4 +38,5 @@ std::vector<MasaMessage> ClassAggregatorMessage::getMessages() {
     pthread_mutex_unlock(&mutex);
     // assert(copy_list.size() != 0);
     return copy_list;
+}
 }

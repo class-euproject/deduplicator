@@ -1,5 +1,7 @@
 #include "Deduplicator.h"
 
+namespace fog {
+
 void create_message_from_tracker(const std::vector<Tracker> &trackers, MasaMessage *m, 
                                  geodetic_converter::GeodeticConverter &gc, double *adfGeoTransform) {
     m->t_stamp_ms = time_in_ms();
@@ -114,4 +116,5 @@ void * Deduplicator::deduplicate(void *n) {
         input_messages.clear();
     }
     return (void *)NULL;
+}
 }

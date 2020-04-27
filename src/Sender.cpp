@@ -1,5 +1,7 @@
 #include "Sender.h"
 
+namespace fog {
+
 Sender::Sender(ClassAggregatorMessage &sharedMessage,
                    std::vector<std::string> ipList_,
                    std::vector<int> portList_) {
@@ -61,4 +63,5 @@ void * Sender::send(void *n) {
         input_messages.clear();
     }
     return (void *)NULL;
+}
 }

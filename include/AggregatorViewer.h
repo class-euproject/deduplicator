@@ -9,6 +9,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 
+namespace fog {
 
 struct tracker_line
 {
@@ -36,5 +37,6 @@ public:
     void setFrameData(const std::vector<tracker_line>& new_lines);
     tk::common::Vector3<float> convertPosition(int x, int y, float z);
 };
+}
 
 #endif /* AGGREGATORVIEWER_H */

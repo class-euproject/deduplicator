@@ -1,5 +1,7 @@
 #include "configuration.h"
 
+namespace fog {
+
 /**
  * From the Yaml file we read an unique string. So we split it by the delimiter. 
 */
@@ -83,4 +85,5 @@ bool readParameters(int argc, char **argv, Parameters_t *param) {
     }
     readParametersYaml(param_file, param);
     return true;
+}
 }

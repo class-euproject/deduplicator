@@ -11,6 +11,8 @@
 #include "LogWriter.h"
 #include "../masa_protocol/include/communicator.hpp"
 
+namespace fog {
+
 typedef void * (*THREADFUNCPTR)(void *);
 
 class Receiver {
@@ -30,5 +32,6 @@ public:
     void end();
     void *receive(void *n);
 };
+}
 
 #endif /* RECEIVER_H */

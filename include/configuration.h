@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <yaml-cpp/yaml.h>
 
+namespace fog {
+
 struct Parameters_t {
     std::vector<int> inputPortList;
     std::vector<int> outputPortList;
@@ -17,5 +19,6 @@ struct Parameters_t {
 
 std::string delimiter = ", ";       // The delimiter chosen to divide the elements in the Yaml file
 bool readParameters(int argc, char **argv, Parameters_t *param);
+}
 
 #endif /* CONFIGURATION_H */

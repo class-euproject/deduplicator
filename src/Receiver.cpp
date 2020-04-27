@@ -1,5 +1,7 @@
 #include "Receiver.h"
 
+namespace fog {
+
 Receiver::Receiver(ClassAggregatorMessage &sharedMessage,
                    int port_) {
     port = port_;
@@ -37,4 +39,5 @@ void * Receiver::receive(void *n) {
     }
     delete m;
     return (void *)NULL;
+}
 }
