@@ -6,10 +6,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lgdal -pthread")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-unused-variable")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTKPROJ_PATH='\"${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/\"'")
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/tracker_CLASS
-                    ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon)
 
 #-------------------------------------------------------------------------------
 # CUDA
@@ -67,5 +63,8 @@ target_link_libraries(classAggregator ${classAggregator_LIBS})
 #-------------------------------------------------------------------------------
 # Build executables
 #-------------------------------------------------------------------------------
-add_executable(main demo/main.cpp)
-target_link_libraries(main classAggregator)
+add_executable(class-aggregator demo/main.cpp)
+target_link_libraries(class-aggregator classAggregator)
+
+add_executable(test-aggregator demo/test.cpp)
+target_link_libraries(test-aggregator classAggregator)
