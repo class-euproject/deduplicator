@@ -6,3 +6,6 @@ unzip -d class-aggregator_data class-aggregator_data.zip
 rm class-aggregator_data.zip
 mv class-aggregator_data/* data/
 rm -r class-aggregator_data
+cd data
+mkdir class_edge_log
+mkdir class_aggregate_log

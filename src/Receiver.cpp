@@ -6,7 +6,7 @@ Receiver::Receiver(ClassAggregatorMessage &sharedMessage,
                    int port_) {
     port = port_;
     cm = &sharedMessage;
-    lw = new LogWriter("../demo/data/class_fog_log/");
+    lw = new LogWriter("../demo/data/class_edge_log/");
     comm = new Communicator<MasaMessage>(SOCK_DGRAM);
     
     comm->open_server_socket(port);
