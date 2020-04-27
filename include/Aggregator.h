@@ -2,6 +2,8 @@
 #define AGGREGATOR_H
 
 #include <assert.h>
+#include <chrono>
+#include <thread>
 #include "ClassAggregatorMessage.h"
 #include "utils.h"
 #include "AggregatorViewer.h"

@@ -4,7 +4,7 @@ Receiver::Receiver(ClassAggregatorMessage &sharedMessage,
                    int port_) {
     port = port_;
     cm = &sharedMessage;
-    lw = new LogWriter("./demo/data/class_fog_log/");
+    lw = new LogWriter("../demo/data/class_fog_log/");
     comm = new Communicator<MasaMessage>(SOCK_DGRAM);
     
     comm->open_server_socket(port);
@@ -14,8 +14,8 @@ Receiver::Receiver(ClassAggregatorMessage &sharedMessage,
 }
 
 Receiver::~Receiver() {
-    free(lw);
-    free(comm);
+    delete lw;
+    delete comm;
 }
 
 void Receiver::start() {
@@ -28,14 +28,13 @@ void Receiver::end() {
 }
 
 void * Receiver::receive(void *n) {
-    MasaMessage *m;
+    MasaMessage *m = new MasaMessage();
+    std::cout<<"started\n";
     while (this->comm->receive_message(this->socketDesc, m) == 0) {
-        std::cout<<"insert m\n";
         this->cm->insertMessage(*m);
-        std::cout<<"write m\n";
         this->lw->write(*m);
-        break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    free(m);
+    delete m;
     return (void *)NULL;
 }

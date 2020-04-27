@@ -4,6 +4,8 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <stdio.h>
+#include <chrono>
+#include <thread>
 #include "utils.h"
 #include "ClassAggregatorMessage.h"
 #include "LogWriter.h"

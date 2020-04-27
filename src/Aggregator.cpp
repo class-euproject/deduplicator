@@ -26,8 +26,9 @@ void * Aggregator::aggregate(void *n) {
     std::vector<MasaMessage> input_messages; 
     MasaMessage aggregate_message;
     while(gRun){
-        // TODO: introduce some delay? (active wait) 
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         input_messages = this->inCm->getMessages();
+        std::cout<<"agg dim reading list: "<<input_messages.size()<<std::endl;
         if(input_messages.size() == 0)
             continue;        // no received messages
 
@@ -43,8 +44,9 @@ void * Aggregator::aggregate(void *n) {
         // if(this->show)
         //     show something
 
-        std::cout<<"insert m\n";
+        std::cout<<"agg insert m\n";
         this->outCm->insertMessage(aggregate_message);
+        input_messages.clear();
     }
     return (void *)NULL;
 }

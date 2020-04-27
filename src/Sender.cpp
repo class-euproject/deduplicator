@@ -22,8 +22,8 @@ Sender::Sender(ClassAggregatorMessage &sharedMessage,
 }
 
 Sender::~Sender() {
-    free(lw);
-    free(comm);
+    delete lw;
+    delete comm;
 }
 
 void Sender::start() {
@@ -36,23 +36,29 @@ void Sender::end() {
 }
 
 void * Sender::send(void *n) {
-    std::vector<MasaMessage> m; //but m must be contain only one message.
+    std::vector<MasaMessage> input_messages; //but it must contain only one message.
+    MasaMessage send_message;
 
     while(gRun){
-        std::cout<<"get m\n";
-        m = this->cm->getMessages();
-        if(m.size() == 0)
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        input_messages = this->cm->getMessages();
+        std::cout<<"send dim reading list: "<<input_messages.size()<<std::endl;
+        if(input_messages.size() == 0)
             continue;        // no received messages
 
-        if(m.size() != 1) 
-            std::cout<<"Warning. There are more than one aggregate message.\n";
-        std::cout<<"write m\n";
-        this->lw->write(m.at(0));
+        if(input_messages.size() > 1){
+            send_message = input_messages[input_messages.size()-1];
+            std::cout<<"send: too many messages";
+        }
+        else
+            send_message = input_messages[0];
+
+
+        this->lw->write(send_message);
         
         for (int i = 0; i < comm->size(); i++)
-                comm->at(i).send_message(&m.at(0), this->portList[i]);
-        m.clear();
-        break;
+                comm->at(i).send_message(&send_message, this->portList[i]);
+        input_messages.clear();
     }
     return (void *)NULL;
 }
