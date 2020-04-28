@@ -35,7 +35,7 @@ void * Receiver::receive(void *n) {
     while (this->comm->receive_message(this->socketDesc, m) == 0) {
         this->cm->insertMessage(*m);
         this->lw->write(*m);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     delete m;
     return (void *)NULL;

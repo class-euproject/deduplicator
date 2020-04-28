@@ -39,7 +39,10 @@ public:
     ~Deduplicator();
     void start();
     void end();
-    void show_updates(double latitude, double longitude, double altitude);
+    std::vector<MasaMessage> filterOldMessages(std::vector<MasaMessage> input_messages);
+    void computeDeduplication(std::vector<MasaMessage> input_messages, 
+                              MasaMessage &deduplicate_message);
+    void showUpdates();
     void *deduplicate(void *n);
 };
 }

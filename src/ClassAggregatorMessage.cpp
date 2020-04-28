@@ -25,8 +25,8 @@ bool ClassAggregatorMessage::deleteOld(MasaMessage m) {
 
 void ClassAggregatorMessage::insertMessage(MasaMessage m) {
     pthread_mutex_lock(&mutex);
-    if (deleteOld(m)) 
-        std::cout<<"some message are deleted -- you are too slow\n";
+    // if (deleteOld(m)) 
+    //     std::cout<<"some message are deleted -- you are too slow\n";
     messageList.push_back(m);
     pthread_mutex_unlock(&mutex);
 }

@@ -32,6 +32,8 @@ Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage,
     outCm = &outputSharedMessage;
     adfGeoTransform = (double *)malloc(6 * sizeof(double));
     readTiff((char *)tifFile.c_str(), adfGeoTransform);
+    /* The initial age indicates how many frames the tracker considers to keep an 
+    *object alive after it fails to detect it. It may be higher than the normal value. */
     initialAge = 5;//8; //15; //-5;
     nStates = 5;
     dt = 0.03;
@@ -56,7 +58,65 @@ void Deduplicator::end() {
     pthread_join(deduplicatorThread, NULL);
 }
 
-void Deduplicator::show_updates(double latitude, double longitude, double altitude) {
+/**
+ * Check if two o more messages from the same cam_idx (road users or traffic lights) are arrived.
+ * Remove the old one.
+*/
+std::vector<MasaMessage> Deduplicator::filterOldMessages(std::vector<MasaMessage> input_messages) {
+    std::cout<<"messages: "<<input_messages.size()<<std::endl;
+    std::vector<MasaMessage> copy = input_messages;
+    std::vector<int> delete_ids;
+    for (int i = 0; i<input_messages.size()-1; i++) {
+        for (int j = i+1; j<input_messages.size(); j++) {
+            if(input_messages.at(i).cam_idx == input_messages.at(j).cam_idx) {
+                if(input_messages.at(i).t_stamp_ms < input_messages.at(j).t_stamp_ms)
+                    delete_ids.push_back(i);
+                else
+                    delete_ids.push_back(j);
+            }
+        }
+    }
+    if (delete_ids.size()==0)
+        return input_messages;
+    if (delete_ids.size() != 1)
+        std::sort(delete_ids.begin(), delete_ids.end(), [](int a, int b) {return a > b; });
+    delete_ids.erase( std::unique( delete_ids.begin(), delete_ids.end() ), delete_ids.end() );
+    for(int i=0; i<delete_ids.size(); i++) { std::cout<<delete_ids[i]<<" "<<std::endl;}
+    std::cout<<"\n";
+    for(auto d : delete_ids)
+        copy.erase(copy.begin() + d);
+    return copy;
+}
+
+/**
+ * Compute the deduplication:
+ * - for the road users it uses the tracker. The tracker deletes a point if two different points 
+ * are close enough together.
+ *  - for the traffic lights it includes all information. Simply delete old messages 
+ * (filterOldMessages)
+*/
+void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages, MasaMessage &deduplicate_message) {
+    std::vector<tracking::obj_m> cur_message;
+    double east, north, up;
+    // deduplicate with the Tracker: fill only cur_message with the information of all collected MasaMessage. 
+    for(auto m : input_messages) {
+        for(size_t i = 0; i < m.objects.size(); i++) {
+            this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
+            cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category));
+        }
+        for(size_t i = 0; i < m.lights.size(); i++)
+            deduplicate_message.lights.push_back(m.lights.at(i)); 
+    }
+    this->t->track(cur_message,this->trVerbose);
+
+    create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
+}
+
+/**
+ * Get the tracker information and set the frame data to the viewer with the updated information
+*/
+void Deduplicator::showUpdates() {
+    double latitude, longitude, altitude;
     //visualize the trackers
     int map_pix_x, map_pix_y; 
     std::vector<tracker_line>  lines;
@@ -71,45 +131,42 @@ void Deduplicator::show_updates(double latitude, double longitude, double altitu
                 GPS2pixel(this->adfGeoTransform, latitude, longitude, map_pix_x, map_pix_y);
 
                 line.points.push_back(this->viewer->convertPosition(map_pix_x,  map_pix_y, -0.004));
-                // std::cout<<"point: "<<line.points[line.points.size()-1].x<<" ---- "<<line.points[line.points.size()-1].y<<" ---- "<<line.points[line.points.size()-1].z<<std::endl;
             }
             lines.push_back(line);
         }
     }
-    // std::cout<<"lines: "<<lines.size()<<std::endl;
     if(this->show)
         this->viewer->setFrameData(lines);
 }
 
+/**
+ * Thread function: it waits for a message list, it filters old messages from the same cam_idx 
+ * comparing the timestamp, it computes the deduplication, then it shows the updates to the viewer.
+ * At the end it sends the deduplicated message. 
+*/
 void * Deduplicator::deduplicate(void *n) {
-    std::vector<tracking::obj_m> cur_message;
     std::vector<MasaMessage> input_messages; 
     MasaMessage deduplicate_message;
     std::vector<cv::Point2f> map_pixels;
-    double east, north, up;
-    double latitude, longitude, altitude;
     while(gRun){
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        cur_message.clear();
-        
+        /* Delay is necessary. If the Deduplicator takes messages too quickly there is a risk 
+        of not tracking the road users correctly. each message is read as a frame. 
+        See the initialAge variable. */
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));        
         
         input_messages = this->inCm->getMessages();
         std::cout<<"dedup dim reading list: "<<input_messages.size()<<std::endl;
         if(input_messages.size() == 0)
             continue;        // no received messages
         std::cout<<"get messages\n";
-        // deduplicate with the Tracker: fill only cur_message with the information of all collected MasaMessage. 
-        for(auto m : input_messages) {
-            for(size_t i = 0; i < m.objects.size(); i++) {
-                    this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
-                    cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category));
-            }
-        }
-        this->t->track(cur_message,this->trVerbose);
 
-        show_updates(latitude, longitude, altitude);
+        // filter old messages from the same id (camera or traffic light)
+        input_messages = filterOldMessages(input_messages);
 
-        create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
+        // takes the input messages and return the deduplicate message
+        computeDeduplication(input_messages, deduplicate_message);
+
+        showUpdates();
         std::cout<<"ded insert m\n";
         this->outCm->insertMessage(deduplicate_message);
         input_messages.clear();
