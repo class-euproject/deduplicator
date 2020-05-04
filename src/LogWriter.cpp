@@ -42,6 +42,11 @@ void LogWriter::write(MasaMessage m) {
            << std::fixed << std::setprecision(9) << ru.latitude << " " << ru.longitude << " "
            << std::fixed << std::setprecision(2) << static_cast<float>(ru.speed) << " " << static_cast<float>(ru.orientation) << "\n";
     }
+    for(auto const& l: m.lights) {
+        of << m.cam_idx << " " << m.t_stamp_ms << " " << l.status << " "
+           << std::fixed << std::setprecision(9) << l.latitude << " " << l.longitude << " "
+           << std::fixed << std::setprecision(2) << static_cast<float>(l.time_to_change) << " " << static_cast<float>(l.orientation) << "\n";
+    }
     of.close();
 }
 }
