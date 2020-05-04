@@ -29,6 +29,7 @@ private:
     std::vector<tracker_line> lines;
     tk::common::Vector3<float> pose;
     tk::common::Vector3<float> size;
+    pthread_mutex_t mutex;
 public:
     bool show;
     

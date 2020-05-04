@@ -8,6 +8,10 @@ AggregatorViewer::AggregatorViewer(const std::string image, const bool to_show) 
     frame_width = frame.cols;
     frame_height = frame.rows;
     aspectRatio = (float)frame_width/(float)frame_height; 
+    pthread_mutexattr_t mutexattr;
+    pthread_mutexattr_init(&mutexattr);
+    pthread_mutex_init(&mutex, &mutexattr);
+    pthread_mutexattr_destroy(&mutexattr);
 }
 
 void AggregatorViewer::init() {
@@ -43,16 +47,19 @@ void AggregatorViewer::draw() {
             yScale = xScale*aspectRatio;
             tkDrawTexture(frameTexture, xScale, yScale);
         } glPopMatrix();
-
+        pthread_mutex_lock(&mutex);
         for(auto l:lines) {
             tkSetColor(l.color);
             tkDrawLine(l.points);
         }
+        pthread_mutex_unlock(&mutex);
     }
 }
 
 void AggregatorViewer::setFrameData(const std::vector<tracker_line>& new_lines) { 
+    pthread_mutex_lock(&mutex);
     lines = new_lines;
+    pthread_mutex_unlock(&mutex);
 }
 
 tk::common::Vector3<float> AggregatorViewer::convertPosition(int x, int y, float z) {
