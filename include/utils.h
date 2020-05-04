@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <gdal_priv.h>
 #include <gdal/gdal.h>
+#include <cmath>
 
 extern bool gRun;
 
