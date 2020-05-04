@@ -4,14 +4,15 @@ namespace fog {
 
 Sender::Sender(ClassAggregatorMessage &sharedMessage,
                    std::vector<std::string> ipList_,
-                   std::vector<int> portList_) {
+                   std::vector<int> portList_,
+                   int myCamIdx) {
     assert(ipList_.size() == portList_.size());
     
     numComm = portList_.size();
     cm = &sharedMessage;
     ipList = ipList_;
     portList = portList_;
-
+    myId = myCamIdx;
     lw = new LogWriter("../demo/data/class_aggregate_log/");
 
     comm = new std::vector<Communicator<MasaMessage>>(SOCK_DGRAM);
@@ -40,7 +41,7 @@ void Sender::end() {
 void * Sender::send(void *n) {
     std::vector<MasaMessage> input_messages; //but it must contain only one message.
     MasaMessage send_message;
-
+    send_message.cam_idx=myId;
     while(gRun){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         input_messages = this->cm->getMessages();
@@ -55,7 +56,8 @@ void * Sender::send(void *n) {
         else
             send_message = input_messages[0];
 
-
+        //update time_stamp
+        send_message.t_stamp_ms = time_in_ms();
         this->lw->write(send_message);
         
         for (int i = 0; i < comm->size(); i++)

@@ -12,6 +12,7 @@ struct Parameters_t {
     std::vector<int> inputPortList;
     std::vector<int> outputPortList;
     std::vector<std::string> outputIpList;
+    int camIdx;
     bool visualization;
     std::string tifFile;
     std::string pngFile;

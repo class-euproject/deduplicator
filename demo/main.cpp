@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     fog::Aggregator a(deduplicated_messages, aggregated_messages, v, param.visualization);
     a.start();
 
-    fog::Sender s(aggregated_messages, param.outputIpList, param.outputPortList);
+    fog::Sender s(aggregated_messages, param.outputIpList, param.outputPortList, param.camIdx);
     s.start();
 
     v.joinThread();

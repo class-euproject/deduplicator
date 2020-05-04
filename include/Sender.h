@@ -26,11 +26,13 @@ private:
     std::vector<Communicator<MasaMessage>> *comm;
     LogWriter *lw;
     pthread_t writerThread;
+    int myId;
 
 public:
     Sender(ClassAggregatorMessage &sharedMessage,
             std::vector<std::string> ipList_,
-            std::vector<int> portList_);
+            std::vector<int> portList_,
+            int myCamIdx);
     ~Sender();
     void start();
     void end();
