@@ -12,7 +12,7 @@ Sender::Sender(ClassAggregatorMessage &sharedMessage,
     ipList = ipList_;
     portList = portList_;
 
-    lw = new LogWriter("./demo/data/class_aggregate_log/");
+    lw = new LogWriter("../demo/data/class_aggregate_log/");
 
     comm = new std::vector<Communicator<MasaMessage>>(SOCK_DGRAM);
     for(int i = 0; i<numComm; i++) {
