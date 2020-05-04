@@ -41,7 +41,6 @@ void Sender::end() {
 void * Sender::send(void *n) {
     std::vector<MasaMessage> input_messages; //but it must contain only one message.
     MasaMessage send_message;
-    send_message.cam_idx=myId;
     while(gRun){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         input_messages = this->cm->getMessages();
@@ -56,8 +55,8 @@ void * Sender::send(void *n) {
         else
             send_message = input_messages[0];
 
-        //update time_stamp
         send_message.t_stamp_ms = time_in_ms();
+        send_message.cam_idx=myId;
         this->lw->write(send_message);
         
         for (int i = 0; i < comm->size(); i++)
