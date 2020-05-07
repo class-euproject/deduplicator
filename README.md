@@ -20,7 +20,8 @@ sudo apt-get install -y libeigen3-dev \
                         python-dev \
                         libgdal-dev \
                         libcereal-dev \
-                        libyaml-cpp-dev
+                        libyaml-cpp-dev \
+                        libpthread-stubs0-dev
 ```
 
 required for tkCommon
