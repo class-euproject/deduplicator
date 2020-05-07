@@ -4,9 +4,6 @@ namespace fog {
 
 void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers, MasaMessage *m, 
                                  geodetic_converter::GeodeticConverter &gc, double *adfGeoTransform) {
-    m->t_stamp_ms = time_in_ms();
-    m->num_objects = trackers.size();
-    m->objects.clear();
     double lat, lon, alt;
     for (auto t : trackers) {
         if (t.predList.size() > 0) {
@@ -99,10 +96,23 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     std::vector<tracking::obj_m> cur_message;
     double east, north, up;
     // deduplicate with the Tracker: fill only cur_message with the information of all collected MasaMessage. 
+    deduplicate_message.lights.clear(); 
+    deduplicate_message.objects.clear();
+    deduplicate_message.t_stamp_ms = time_in_ms();
     for(auto m : input_messages) {
         for(size_t i = 0; i < m.objects.size(); i++) {
-            this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
-            cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category));
+            // skip some special road user 
+            if(m.objects.at(i).category == C_marelli1 || 
+               m.objects.at(i).category == C_marelli2 || 
+               m.objects.at(i).category == C_quattroporte ||
+               m.objects.at(i).category == C_levante || 
+               m.objects.at(i).category == C_rover) {
+                deduplicate_message.objects.push_back(m.objects.at(i));    
+            }
+            else { // the normal road user pass to tracker
+                this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
+                cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category));
+            }
         }
         for(size_t i = 0; i < m.lights.size(); i++)
             deduplicate_message.lights.push_back(m.lights.at(i)); 
@@ -110,6 +120,8 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     this->t->track(cur_message,this->trVerbose);
 
     create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
+
+    deduplicate_message.num_objects = deduplicate_message.objects.size();
 }
 
 /**
