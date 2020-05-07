@@ -2,6 +2,8 @@
 
 
 bool gRun;
+bool V3D;
+
 void sig_handler(int signal) {
     std::cout << "request gateway stop\n";
     gRun = false;

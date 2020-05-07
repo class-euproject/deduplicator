@@ -8,6 +8,7 @@
 #include <cmath>
 
 extern bool gRun;
+extern bool V3D;
 
 void sig_handler(int signal);
 void readTiff(char *filename, double *adfGeoTransform);

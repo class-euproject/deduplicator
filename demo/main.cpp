@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     }
 
     gRun = true;
-
+    V3D = true;
     // start the viewer
     fog::AggregatorViewer v(param.pngFile, param.visualization);
     if(param.visualization) {

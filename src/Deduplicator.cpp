@@ -129,8 +129,10 @@ void Deduplicator::showUpdates() {
                 this->gc.enu2Geodetic(traj.x, traj.y, 0, &latitude, &longitude, &altitude);
                 //convert from GPS to map pixels
                 GPS2pixel(this->adfGeoTransform, latitude, longitude, map_pix_x, map_pix_y);
-
-                line.points.push_back(this->viewer->convertPosition(map_pix_x,  map_pix_y, -0.004));
+                if(V3D)
+                    line.points.push_back(this->viewer->convertPosition3D(map_pix_x,  map_pix_y, 1.004));
+                else
+                    line.points.push_back(this->viewer->convertPosition2D(map_pix_x,  map_pix_y, -0.004));            
             }
             lines.push_back(line);
         }

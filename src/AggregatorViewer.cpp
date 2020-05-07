@@ -29,23 +29,26 @@ void AggregatorViewer::init() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame_width, frame_height, 0, GL_BGR ,GL_UNSIGNED_BYTE, frame.data);
         glBindTexture(GL_TEXTURE_2D, 0);
-        glLineWidth(0.9);
     }
 }
 
 void AggregatorViewer::draw() {
     if(show) {
         tk::gui::Viewer::draw();
-        //set 2D view
-        tkViewport2D(width, height);
-
+        glLineWidth(6.0f);
+        if(!V3D) //set 2D view
+            tkViewport2D(width, height);
         //draw frame
         glPushMatrix(); {
             glTranslatef(0, 0, 0.001);
             glColor4f(1,1,1,1);
             xScale = xLim;
             yScale = xScale*aspectRatio;
-            tkDrawTexture(frameTexture, xScale, yScale);
+            if(V3D)
+                tkDrawTexture(frameTexture, frame_width, frame_height);
+            else
+                tkDrawTexture(frameTexture, xScale, yScale);
+            
         } glPopMatrix();
         pthread_mutex_lock(&mutex);
         for(auto l:lines) {
@@ -62,9 +65,15 @@ void AggregatorViewer::setFrameData(const std::vector<tracker_line>& new_lines) 
     pthread_mutex_unlock(&mutex);
 }
 
-tk::common::Vector3<float> AggregatorViewer::convertPosition(int x, int y, float z) {
+tk::common::Vector3<float> AggregatorViewer::convertPosition2D(int x, int y, float z) {
     float new_x = ((float)x/(float)frame_width - 0.5)*yScale;
     float new_y = -((float)y/(float)frame_height -0.5)*xScale;
+    return tk::common::Vector3<float>{new_x, new_y, z};
+}
+
+tk::common::Vector3<float> AggregatorViewer::convertPosition3D(int x, int y, float z) {
+    float new_x = ((float)x/(float)frame_width - 0.5)*(float)frame_width;
+    float new_y = -((float)y/(float)frame_height -0.5)*(float)frame_height;
     return tk::common::Vector3<float>{new_x, new_y, z};
 }
 }

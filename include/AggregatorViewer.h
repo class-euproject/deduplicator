@@ -8,6 +8,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
+#include "utils.h"
 
 namespace fog {
 
@@ -38,7 +39,8 @@ public:
     void init();
     void draw();
     void setFrameData(const std::vector<tracker_line>& new_lines);
-    tk::common::Vector3<float> convertPosition(int x, int y, float z);
+    tk::common::Vector3<float> convertPosition2D(int x, int y, float z);
+    tk::common::Vector3<float> convertPosition3D(int x, int y, float z);
 };
 }
 
