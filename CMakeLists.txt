@@ -52,7 +52,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
-include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${NVINFER_INCLUDES} ${CUDNN_INCLUDE_DIRS})
+include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${CUDNN_INCLUDE_DIRS})
 
 file(GLOB classAggregator_SRC "src/*.cpp")
 set(classAggregator_LIBS  ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} yaml-cpp gdal tkCommon class-tracker)

@@ -8,7 +8,6 @@ This projects depends on:
 
   * CUDA 10.0
   * CUDNN 7.603
-  * TENSORRT 6.01
   * OPENCV 3.4
   * yaml-cpp 0.5.2 
   * Eigen
