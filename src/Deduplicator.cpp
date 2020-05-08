@@ -142,7 +142,7 @@ void Deduplicator::showUpdates() {
                 //convert from GPS to map pixels
                 GPS2pixel(this->adfGeoTransform, latitude, longitude, map_pix_x, map_pix_y);
                 if(V3D)
-                    line.points.push_back(this->viewer->convertPosition3D(map_pix_x,  map_pix_y, 1.004));
+                    line.points.push_back(this->viewer->convertPosition3D(map_pix_x,  map_pix_y, 2.004));
                 else
                     line.points.push_back(this->viewer->convertPosition2D(map_pix_x,  map_pix_y, -0.004));            
             }
@@ -166,7 +166,7 @@ void * Deduplicator::deduplicate(void *n) {
         /* Delay is necessary. If the Deduplicator takes messages too quickly there is a risk 
         of not tracking the road users correctly. each message is read as a frame. 
         See the initialAge variable. */
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));        
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));        
         
         input_messages = this->inCm->getMessages();
         std::cout<<"dedup dim reading list: "<<input_messages.size()<<std::endl;

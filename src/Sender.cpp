@@ -42,7 +42,7 @@ void * Sender::send(void *n) {
     std::vector<MasaMessage> input_messages; //but it must contain only one message.
     MasaMessage send_message;
     while(gRun){
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         input_messages = this->cm->getMessages();
         std::cout<<"send dim reading list: "<<input_messages.size()<<std::endl;
         if(input_messages.size() == 0)

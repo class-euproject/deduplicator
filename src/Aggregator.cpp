@@ -28,7 +28,7 @@ void * Aggregator::aggregate(void *n) {
     std::vector<MasaMessage> input_messages; 
     MasaMessage aggregate_message;
     while(gRun){
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         input_messages = this->inCm->getMessages();
         std::cout<<"agg dim reading list: "<<input_messages.size()<<std::endl;
         if(input_messages.size() == 0)
