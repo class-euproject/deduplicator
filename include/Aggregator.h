@@ -6,6 +6,7 @@
 #include <thread>
 #include "ClassAggregatorMessage.h"
 #include "utils.h"
+#include "Profiler.h"
 #include "AggregatorViewer.h"
 
 namespace fog {

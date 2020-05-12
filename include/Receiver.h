@@ -7,6 +7,7 @@
 #include <chrono>
 #include <thread>
 #include "utils.h"
+#include "Profiler.h"
 #include "ClassAggregatorMessage.h"
 #include "LogWriter.h"
 #include "../masa_protocol/include/communicator.hpp"

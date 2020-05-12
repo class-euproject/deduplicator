@@ -31,11 +31,18 @@ void Receiver::end() {
 
 void * Receiver::receive(void *n) {
     MasaMessage *m = new MasaMessage();
-    std::cout<<"started\n";
+    fog::Profiler prof("Receiver    ");
     while (this->comm->receive_message(this->socketDesc, m) == 0) {
+        prof.tick("total time");
+        prof.tick("insert message");
         this->cm->insertMessage(*m);
+        prof.tock("insert message");
+        prof.tick("write edge");
         this->lw->write(*m);
+        prof.tock("write edge");
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        prof.tock("total time");
+        prof.printStats();
     }
     delete m;
     return (void *)NULL;

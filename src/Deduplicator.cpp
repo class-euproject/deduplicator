@@ -60,7 +60,7 @@ void Deduplicator::end() {
  * Remove the old one.
 */
 std::vector<MasaMessage> Deduplicator::filterOldMessages(std::vector<MasaMessage> input_messages) {
-    std::cout<<"messages: "<<input_messages.size()<<std::endl;
+    // std::cout<<"messages: "<<input_messages.size()<<std::endl;
     std::vector<MasaMessage> copy = input_messages;
     std::vector<int> delete_ids;
     for (int i = 0; i<input_messages.size()-1; i++) {
@@ -78,8 +78,8 @@ std::vector<MasaMessage> Deduplicator::filterOldMessages(std::vector<MasaMessage
     if (delete_ids.size() != 1)
         std::sort(delete_ids.begin(), delete_ids.end(), [](int a, int b) {return a > b; });
     delete_ids.erase( std::unique( delete_ids.begin(), delete_ids.end() ), delete_ids.end() );
-    for(int i=0; i<delete_ids.size(); i++) { std::cout<<delete_ids[i]<<" "<<std::endl;}
-    std::cout<<"\n";
+    // for(int i=0; i<delete_ids.size(); i++) { std::cout<<delete_ids[i]<<" "<<std::endl;}
+    // std::cout<<"\n";
     for(auto d : delete_ids)
         copy.erase(copy.begin() + d);
     return copy;
@@ -162,28 +162,39 @@ void * Deduplicator::deduplicate(void *n) {
     std::vector<MasaMessage> input_messages; 
     MasaMessage deduplicate_message;
     std::vector<cv::Point2f> map_pixels;
+    fog::Profiler prof("Deduplicator");
     while(gRun){
         /* Delay is necessary. If the Deduplicator takes messages too quickly there is a risk 
         of not tracking the road users correctly. each message is read as a frame. 
         See the initialAge variable. */
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));        
-        
+        prof.tick("total time");
+        // std::this_thread::sleep_for(std::chrono::milliseconds(30));        
+        prof.tick("get messages");
         input_messages = this->inCm->getMessages();
-        std::cout<<"dedup dim reading list: "<<input_messages.size()<<std::endl;
-        if(input_messages.size() == 0)
+        prof.tock("get messages");
+        // std::cout<<"dedup dim reading list: "<<input_messages.size()<<std::endl;
+        if(input_messages.size() == 0) {
+            prof.tick("total time");
             continue;        // no received messages
-        std::cout<<"get messages\n";
-
+        }
+        // std::cout<<"get messages\n";
+        prof.tick("filter old");
         // filter old messages from the same id (camera or traffic light)
         input_messages = filterOldMessages(input_messages);
-
+        prof.tock("filter old");
+        prof.tick("deduplication");
         // takes the input messages and return the deduplicate message
         computeDeduplication(input_messages, deduplicate_message);
-
+        prof.tock("deduplication");
+        prof.tick("show update");
         showUpdates();
-        std::cout<<"ded insert m\n";
+        prof.tock("show update");
+        prof.tick("insert message");
         this->outCm->insertMessage(deduplicate_message);
         input_messages.clear();
+        prof.tock("insert message");
+        prof.tock("total time");
+        prof.printStats();
     }
     return (void *)NULL;
 }

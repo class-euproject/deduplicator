@@ -6,6 +6,7 @@
 #include <thread>
 #include "ClassAggregatorMessage.h"
 #include "utils.h"
+#include "Profiler.h"
 #include "AggregatorViewer.h"
 #include "../class-tracker/include/obj.h"
 #include "../class-tracker/include/Tracking.h"

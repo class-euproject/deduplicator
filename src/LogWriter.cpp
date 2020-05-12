@@ -9,15 +9,15 @@ LogWriter::LogWriter(std::string fileSavingPath) {
 std::string LogWriter::createSubDirectories() {
     std::string new_folder = path + std::to_string(tmRealYear);
     if(!mkdir((const char *)new_folder.c_str(), 0777)){
-        std::cout<<"create year folder\n";
+        ;//std::cout<<"create year folder\n";
     }
     new_folder = new_folder + separator() + std::to_string(tmYday);
     if(!mkdir((const char *)new_folder.c_str(), 0777)){
-        std::cout<<"create day folder\n";
+        ;//std::cout<<"create day folder\n";
     }
     new_folder = new_folder + separator() + std::to_string(tmHour);
     if(!mkdir((const char *)new_folder.c_str(), 0777)){
-        std::cout<<"create hour folder\n";
+        ;//std::cout<<"create hour folder\n";
     }
     return new_folder + separator();
 }

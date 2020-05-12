@@ -1,4 +1,5 @@
 #include <iostream>
+#include <pthread.h>
 #include "utils.h"
 #include "configuration.h"
 #include "ClassAggregatorMessage.h"
@@ -6,6 +7,7 @@
 #include "Sender.h"
 #include "Deduplicator.h"
 #include "Aggregator.h"
+#include "Profiler.h"
 
 int main(int argc, char **argv) {
     fog::ClassAggregatorMessage received_messages;       // Receiver fills this message, Deduplicator deduplicates its objects
@@ -18,6 +20,11 @@ int main(int argc, char **argv) {
         exit(EXIT_SUCCESS);         // help
     }
 
+    pthread_mutexattr_t mutexattr;
+    pthread_mutexattr_init(&mutexattr);
+    pthread_mutex_init(&profiler_mutex, &mutexattr);
+    pthread_mutexattr_destroy(&mutexattr);
+    
     gRun = true;
     V3D = false;
     // start the viewer
