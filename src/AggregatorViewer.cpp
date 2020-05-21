@@ -76,4 +76,21 @@ tk::common::Vector3<float> AggregatorViewer::convertPosition3D(int x, int y, flo
     float new_y = -((float)y/(float)frame_height -0.5)*(float)frame_height;
     return tk::common::Vector3<float>{new_x, new_y, z};
 }
+
+void AggrefgatorViewer::tkViewport2D(int width, int height, int x, int y) {
+    float ar = (float)width / (float)height;
+
+    glViewport(x, y, width, height);
+    glOrtho(0, width, 0, height, -1, 1);
+    glLoadIdentity();
+    
+    glMatrixMode( GL_PROJECTION );
+    glLoadIdentity();
+
+    glOrtho(-ar, ar, -1, 1, 1, -1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
 }
