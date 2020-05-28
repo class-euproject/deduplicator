@@ -41,7 +41,7 @@ public:
     void setFrameData(const std::vector<tracker_line>& new_lines);
     tk::common::Vector3<float> convertPosition2D(int x, int y, float z);
     tk::common::Vector3<float> convertPosition3D(int x, int y, float z);
-    void tkViewport2D(int width, int height, int x, int y);
+    void tkViewport2D(int width, int height, int x=0, int y=0);
 };
 }
 
