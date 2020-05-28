@@ -3,7 +3,7 @@
 	url = https://git.hipert.unimore.it/rcavicchioli/masa_protocol.git
 [submodule "tkCommon"]
 	path = tkCommon
-	url = https://git.hipert.unimore.it/tk/core/tkCommon.git
+	url = https://github.com/ceccocats/tkCommon.git
 [submodule "class-tracker"]
 	path = class-tracker
 	url = https://github.com/mive93/class-tracker.git
