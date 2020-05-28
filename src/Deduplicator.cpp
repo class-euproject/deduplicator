@@ -111,7 +111,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
             }
             else { // the normal road user pass to tracker
                 this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
-                cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category));
+                cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
             }
         }
         for(size_t i = 0; i < m.lights.size(); i++)
