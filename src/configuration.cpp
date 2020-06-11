@@ -38,6 +38,8 @@ void readParametersYaml(const std::string &camerasParams, Parameters_t *par) {
     par->outputIpList = getParamList(config["output_ips"].as<std::string>());
     par->camIdx = config["cam_idx"].as<int>();
     par->visualization = config["visualization"].as<bool>();
+    par->edge_log_saving = config["edge_log_saving"].as<bool>();
+    par->aggr_log_saving = config["aggr_log_saving"].as<bool>();
     par->tifFile = config["tif_map"].as<std::string>();
     par->pngFile = config["png_map"].as<std::string>();
 }
@@ -53,6 +55,8 @@ bool readParameters(int argc, char **argv, Parameters_t *param) {
         param->outputIpList.push_back("127.0.0.1");
         param->camIdx = 0;
         param->visualization = false;
+        param->edge_log_saving = false;
+        param->aggr_log_saving = false;
         param->tifFile = "../demo/data/MASA_4670.tif";
         param->pngFile = "../demo/data/MASA_4670.png";
         return true;

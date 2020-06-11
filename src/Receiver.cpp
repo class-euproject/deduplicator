@@ -3,9 +3,10 @@
 namespace fog {
 
 Receiver::Receiver(ClassAggregatorMessage &sharedMessage,
-                   int port_) {
+                   int port_, bool logWriterFlag) {
     port = port_;
     cm = &sharedMessage;
+    lw_flag = logWriterFlag;
     lw = new LogWriter("../demo/data/class_edge_log/");
     comm = new Communicator<MasaMessage>(SOCK_DGRAM);
     
@@ -37,9 +38,11 @@ void * Receiver::receive(void *n) {
         prof.tick("insert message");
         this->cm->insertMessage(*m);
         prof.tock("insert message");
-        prof.tick("write edge");
-        this->lw->write(*m);
-        prof.tock("write edge");
+        if(lw_flag) {
+            prof.tick("write edge");
+            this->lw->write(*m);
+            prof.tock("write edge");
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
         prof.tock("total time");
         prof.printStats();

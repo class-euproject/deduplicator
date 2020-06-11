@@ -14,6 +14,8 @@ struct Parameters_t {
     std::vector<std::string> outputIpList;
     int camIdx;
     bool visualization;
+    bool edge_log_saving;
+    bool aggr_log_saving;
     std::string tifFile;
     std::string pngFile;
 };

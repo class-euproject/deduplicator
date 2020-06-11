@@ -26,6 +26,7 @@ private:
     int numComm;
     std::vector<Communicator<MasaMessage>> *comm;
     LogWriter *lw;
+    bool lw_flag;
     pthread_t writerThread;
     int myId;
 
@@ -33,7 +34,7 @@ public:
     Sender(ClassAggregatorMessage &sharedMessage,
             std::vector<std::string> ipList_,
             std::vector<int> portList_,
-            int myCamIdx);
+            int myCamIdx, bool logWriterFlag);
     ~Sender();
     void start();
     void end();

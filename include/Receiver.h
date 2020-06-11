@@ -21,13 +21,14 @@ class Receiver {
 private:
     ClassAggregatorMessage *cm;
     LogWriter *lw;
+    bool lw_flag;
     pthread_t snifferThread;
     int port;
     int socketDesc;
     Communicator<MasaMessage> *comm;
 public:    
     Receiver(ClassAggregatorMessage &sharedMessage,
-             int port_);
+             int port_, bool logWriterFlag);
     ~Receiver();
     void start();
     void end();

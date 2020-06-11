@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     // TODO: iterate on ports:
     if (param.inputPortList.size() > 1)
         std::cerr<<"many input ports: no supported. Use only the first...\n";
-    fog::Receiver r(received_messages, param.inputPortList[0]);
+    fog::Receiver r(received_messages, param.inputPortList[0], param.edge_log_saving);
     r.start();
 
     fog::Deduplicator d(received_messages, deduplicated_messages, param.tifFile, v, param.visualization);
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     fog::Aggregator a(deduplicated_messages, aggregated_messages, v, param.visualization);
     a.start();
 
-    fog::Sender s(aggregated_messages, param.outputIpList, param.outputPortList, param.camIdx);
+    fog::Sender s(aggregated_messages, param.outputIpList, param.outputPortList, param.camIdx, param.aggr_log_saving);
     s.start();
 
     v.joinThread();
