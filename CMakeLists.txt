@@ -55,10 +55,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
 include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${CUDNN_INCLUDE_DIRS})
 
 file(GLOB classAggregator_SRC "src/*.cpp")
+list(REMOVE_ITEM classAggregator_SRC ${CMAKE_SOURCE_DIR}/src/modules.cpp)
 set(classAggregator_LIBS  ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} yaml-cpp gdal tkCommon class-tracker)
 add_library(classAggregator SHARED ${classAggregator_SRC})
 target_link_libraries(classAggregator ${classAggregator_LIBS})
 
+find_package(pybind11 REQUIRED)
+include_directories(BEFORE ${PYTHON_INCLUDE_DIRS} ./include)
+pybind11_add_module(deduplicator SHARED src/modules.cpp src/Deduplicator.cpp src/utils.cpp src/ClassAggregatorMessage.cpp)
+target_link_libraries(deduplicator PUBLIC class-tracker gdal ${PYTHON_LIBRARIES})
 
 #-------------------------------------------------------------------------------
 # Build executables

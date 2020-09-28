@@ -41,6 +41,18 @@ Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage,
     show = visual;
 }
 
+Deduplicator::Deduplicator(double* adfGeoTransform, const double latitude, const double longitude) {
+    this->adfGeoTransform = adfGeoTransform;
+    this->gc.initialiseReference(latitude, longitude, 0);
+    /* The initial age indicates how many frames the tracker considers to keep an
+    *object alive after it fails to detect it. It may be higher than the normal value. */
+    initialAge = 5;//8; //15; //-5;
+    nStates = 5;
+    dt = 0.03;
+    trVerbose = false;
+    t = new tracking::Tracking(nStates, dt, initialAge);
+}
+
 Deduplicator::~Deduplicator() {
     free(adfGeoTransform);
     delete t;
@@ -125,35 +137,6 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
 }
 
 /**
- * Get the tracker information and set the frame data to the viewer with the updated information
-*/
-void Deduplicator::showUpdates() {
-    double latitude, longitude, altitude;
-    //visualize the trackers
-    int map_pix_x, map_pix_y; 
-    std::vector<tracker_line>  lines;
-    for(auto tr : this->t->getTrackers()) {
-        if(tr.predList.size()) {
-            tracker_line line;
-            line.color = tk::gui::Color_t {tr.r, tr.g, tr.b, 255};
-            for(auto traj: tr.predList) {
-                //convert from meters to GPS
-                this->gc.enu2Geodetic(traj.x, traj.y, 0, &latitude, &longitude, &altitude);
-                //convert from GPS to map pixels
-                GPS2pixel(this->adfGeoTransform, latitude, longitude, map_pix_x, map_pix_y);
-                if(V3D)
-                    line.points.push_back(this->viewer->convertPosition3D(map_pix_x,  map_pix_y, 2.004));
-                else
-                    line.points.push_back(this->viewer->convertPosition2D(map_pix_x,  map_pix_y, -0.004));            
-            }
-            lines.push_back(line);
-        }
-    }
-    if(this->show)
-        this->viewer->setFrameData(lines);
-}
-
-/**
  * Thread function: it waits for a message list, it filters old messages from the same cam_idx 
  * comparing the timestamp, it computes the deduplication, then it shows the updates to the viewer.
  * At the end it sends the deduplicated message. 
@@ -162,39 +145,36 @@ void * Deduplicator::deduplicate(void *n) {
     std::vector<MasaMessage> input_messages; 
     MasaMessage deduplicate_message;
     std::vector<cv::Point2f> map_pixels;
-    fog::Profiler prof("Deduplicator");
+    // fog::Profiler prof("Deduplicator");
     while(gRun){
         /* Delay is necessary. If the Deduplicator takes messages too quickly there is a risk 
         of not tracking the road users correctly. each message is read as a frame. 
         See the initialAge variable. */
-        prof.tick("total time");
-        // std::this_thread::sleep_for(std::chrono::milliseconds(30));        
-        prof.tick("get messages");
+        // prof.tick("total time");
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        // prof.tick("get messages");
         input_messages = this->inCm->getMessages();
-        prof.tock("get messages");
-        // std::cout<<"dedup dim reading list: "<<input_messages.size()<<std::endl;
+        // prof.tock("get messages");
+        std::cout<<"dedup dim reading list: "<<input_messages.size()<<std::endl;
         if(input_messages.size() == 0) {
-            prof.tick("total time");
+            // prof.tick("total time");
             continue;        // no received messages
         }
-        // std::cout<<"get messages\n";
-        prof.tick("filter old");
+        std::cout<<"get messages\n";
+        // prof.tick("filter old");
         // filter old messages from the same id (camera or traffic light)
         input_messages = filterOldMessages(input_messages);
-        prof.tock("filter old");
-        prof.tick("deduplication");
+        // prof.tock("filter old");
+        // prof.tick("deduplication");
         // takes the input messages and return the deduplicate message
         computeDeduplication(input_messages, deduplicate_message);
-        prof.tock("deduplication");
-        prof.tick("show update");
-        showUpdates();
-        prof.tock("show update");
-        prof.tick("insert message");
+        // prof.tock("deduplication");
+        // prof.tick("insert message");
         this->outCm->insertMessage(deduplicate_message);
         input_messages.clear();
-        prof.tock("insert message");
-        prof.tock("total time");
-        prof.printStats();
+        // prof.tock("insert message");
+        // prof.tock("total time");
+        // prof.printStats();
     }
     return (void *)NULL;
 }

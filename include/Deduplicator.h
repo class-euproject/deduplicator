@@ -21,7 +21,6 @@ private:
     double *adfGeoTransform;
     // Initialize tracker information
     // std::vector<Tracker> trackers;
-    tracking::Tracking *t;
     int initialAge;
     int nStates;
     float dt;
@@ -32,18 +31,20 @@ private:
     AggregatorViewer *viewer;
     bool show;
 public:
+
+    tracking::Tracking *t;
     Deduplicator(ClassAggregatorMessage &inputSharedMessage, 
                  ClassAggregatorMessage &outputSharedMessage,
                  std::string tifFile,
                  AggregatorViewer &v,
                  bool visual);
+    Deduplicator(double* adfGeoTransform, double latitude, double longitude);
     ~Deduplicator();
     void start();
     void end();
     std::vector<MasaMessage> filterOldMessages(std::vector<MasaMessage> input_messages);
     void computeDeduplication(std::vector<MasaMessage> input_messages, 
                               MasaMessage &deduplicate_message);
-    void showUpdates();
     void *deduplicate(void *n);
 };
 }
