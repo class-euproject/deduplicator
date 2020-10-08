@@ -20,7 +20,7 @@ private:
     int sockfd, newsockfd;
     struct sockaddr_in serv_addr;
     int portno;
-    pthread_t serverThd;
+    pthread_t serverThrd;
     
     const static long BUFSIZE = 256;
     char buffer[BUFSIZE];
@@ -30,10 +30,11 @@ public:
     ~Server();
     void start();
     void end();
-    
-    virtual void doYourWork() {
 
+    void *serverThrdFn(void * ptr) {
+	doYourWork(ptr);
     }
+    virtual void *doYourWork(void *);
 };
 }
 

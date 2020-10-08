@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     fog::Sender s(aggregated_messages, param.outputIpList, param.outputPortList, param.camIdx, param.aggr_log_saving);
     s.start();
 
-    fog::WebServer ws();
+    fog::WebServer ws;
     ws.start();
 
     v.joinThread();

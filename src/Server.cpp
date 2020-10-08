@@ -1,5 +1,8 @@
 #include "Server.h"
 #include <thread>
+#include <iostream>
+
+using namespace std;
 
 namespace fog{
 
@@ -29,18 +32,18 @@ Server::~Server() {
 }
 
 void Server::start() {
-    if (pthread_create(&serverThread, NULL, (THREADFUNCPTR) &doYourWork, this)) 
+    if (pthread_create(&serverThrd, NULL, (THREADFUNCPTR) &Server::serverThrdFn, this)) 
         perror("could not create thread");
 }
 
 void Server::end() {
-    pthread_join(serverThread, NULL);
+    pthread_join(serverThrd, NULL);
 
     close(newsockfd);
     close(sockfd);
 }
 
-void Server::doYourWork() {
+void *Server::doYourWork(void * ptr) {
     cout << "Server::doYourWork()" << endl;
 }
 

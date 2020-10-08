@@ -5,12 +5,12 @@
 
 namespace fog {
 
-class WebServer : Server {
+class WebServer : public Server {
 
 public:
     WebServer() : Server(80) { }
 
-    void doYourWork() override;
+    void *doYourWork(void *) override;
 };
 }
 

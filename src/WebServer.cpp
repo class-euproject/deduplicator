@@ -1,8 +1,11 @@
 #include "WebServer.h"
+#include <iostream>
+
+using namespace std;
 
 namespace fog{
 
-void WebServer::doYourWork() {
+void *WebServer::doYourWork(void * ptr) {
     cout << "WebServer::doYourWork()" << endl;
     // struct sockaddr_in cli_addr;
     // socklen_t clilen = sizeof(cli_addr);
