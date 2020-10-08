@@ -39,16 +39,17 @@ void Server::start() {
 void Server::end() {
     pthread_join(serverThrd, NULL);
 
-    close(newsockfd);
     close(sockfd);
 }
 
 void *Server::serverThrdFn(void * ptr) {
+
+    struct sockaddr_in cli_addr;
+    socklen_t clilen = sizeof(cli_addr);
+    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
+        error("ERROR on binding");
+
     while(1) {
-        struct sockaddr_in cli_addr;
-        socklen_t clilen = sizeof(cli_addr);
-        if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
-            error("ERROR on binding");
         listen(sockfd,5);
         
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
@@ -66,6 +67,8 @@ void *Server::serverThrdFn(void * ptr) {
         n = write(newsockfd, ret, 18);
         if (n < 0)
             error("ERROR writing to socket");
+
+        close(newsockfd);
     }
 }
 
