@@ -12,6 +12,8 @@
 #include "LogWriter.h"
 #include "../masa_protocol/include/communicator.hpp"
 
+// TODO SAPIENZA you don't include pthread.h here..
+
 namespace fog {
 
 typedef void * (*THREADFUNCPTR)(void *);
