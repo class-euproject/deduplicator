@@ -5,6 +5,7 @@
 #include "ClassAggregatorMessage.h"
 #include "Receiver.h"
 #include "Sender.h"
+#include "WebServer.h"
 #include "Deduplicator.h"
 #include "Aggregator.h"
 #include "Profiler.h"
@@ -49,7 +50,11 @@ int main(int argc, char **argv) {
     fog::Sender s(aggregated_messages, param.outputIpList, param.outputPortList, param.camIdx, param.aggr_log_saving);
     s.start();
 
+    fog::WebServer ws();
+    ws.start();
+
     v.joinThread();
+    ws.end();
     r.end();
     d.end();
     a.end();
