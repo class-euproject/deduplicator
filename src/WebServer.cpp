@@ -2,6 +2,14 @@
 
 namespace fog{
 
+void error(const char *msg)
+{
+    perror(msg);
+    exit(1);
+}
+
+
+
 WebServer::WebServer(int port) {
 
     portno = port;
@@ -28,7 +36,7 @@ void WebServer::start() {
         error("ERROR on binding");
     listen(sockfd,5);
     
-    int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
     if (newsockfd < 0) 
         error("ERROR on accept");

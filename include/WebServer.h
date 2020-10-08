@@ -13,11 +13,11 @@ namespace fog {
 class WebServer {
 
 private:
-    int sockfd;
+    int sockfd, newsockfd;
     struct sockaddr_in serv_addr;
     int portno;
     
-    const long BUFSIZE = 256;
+    const static long BUFSIZE = 256;
     char buffer[BUFSIZE];
     
 public:
