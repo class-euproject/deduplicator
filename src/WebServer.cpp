@@ -4,9 +4,9 @@
 using namespace std;
 
 namespace fog{
+std::string out;
 
 char *WebServer::buildResponse(char *msg) {
-    std::string out;
     out.append("HTTP/1.1 200 OK\n");
 // Cache-Control: no-cache
 // Pragma: no-cache
@@ -22,7 +22,10 @@ char *WebServer::buildResponse(char *msg) {
 // Set-Cookie: ARRAffinity=166775b745e660bdb8a82a11166e31b9829590a3c9a8a411718e1a2174d19d20;Path=/;HttpOnly;Secure;Domain=cloudapi-dev1.iotty.com
 // Set-Cookie: ARRAffinitySameSite=166775b745e660bdb8a82a11166e31b9829590a3c9a8a411718e1a2174d19d20;Path=/;HttpOnly;SameSite=None;Secure;Domain=cloudapi-dev1.iotty.com
 // Date: Thu, 08 Oct 2020 12:10:38 GMT
-    return (char *) out.c_str();
+   char * ret = (char *) out.c_str();
+   cout << "buildResponse out is " << out << endl;
+   cout << "buildResponse out.c_str() is " << out.c_str() << endl;
+   cout << "buildResponse ret is " << ret << " and its length is " << strlen(ret)<< endl;
 }
 
 char* WebServer::doYourWork(char * msg, int msglen) {
