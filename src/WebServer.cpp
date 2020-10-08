@@ -2,23 +2,19 @@
 
 namespace fog{
 
-WebServer::WebServer()
-{
+WebServer::WebServer(int port) {
 
 }
 
-WebServer::~WebServer()
-{
+WebServer::~WebServer() {
 
 }
 
-void WebServer::start()
-{
+void WebServer::start() {
 
 }
 
-void WebServer::end()
-{
+void WebServer::end() {
 
 }
 
