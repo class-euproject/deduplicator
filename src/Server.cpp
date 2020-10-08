@@ -43,8 +43,33 @@ void Server::end() {
     close(sockfd);
 }
 
-void *Server::doYourWork(void * ptr) {
-    cout << "Server::doYourWork()" << endl;
+void *Server::serverThrdFn(void * ptr) {
+    while(1) {
+        struct sockaddr_in cli_addr;
+        socklen_t clilen = sizeof(cli_addr);
+        if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
+            error("ERROR on binding");
+        listen(sockfd,5);
+        
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+
+        if (newsockfd < 0) 
+            error("ERROR on accept");
+        bzero(buffer,BUFSIZE);
+        int n = read(newsockfd,buffer,BUFSIZE - 1);
+        if (n < 0)
+            error("ERROR reading from socket");
+
+        char * ret = doYourWork(&buffer[0], n);
+
+        cout << "ret is " << ret << " and its length is " << strlen(ret) << endl;
+        n = write(newsockfd, ret, 18);
+        if (n < 0)
+            error("ERROR writing to socket");
+    }
 }
 
+char* Server::doYourWork(char * msg, int msglen) {
+    cout << "Server::doYourWork()" << endl;
+}
 }

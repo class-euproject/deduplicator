@@ -10,7 +10,7 @@ class WebServer : public Server {
 public:
     WebServer() : Server(80) { }
 
-    void *doYourWork(void *) override;
+    char * doYourWork(char *, int) override;
 };
 }
 

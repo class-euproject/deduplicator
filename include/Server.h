@@ -24,17 +24,16 @@ private:
     
     const static long BUFSIZE = 256;
     char buffer[BUFSIZE];
+    void *serverThrdFn(void * ptr);
+
+protected:
+    virtual char * doYourWork(char *, int);
     
 public:
     Server(int port);
     ~Server();
     void start();
     void end();
-
-    void *serverThrdFn(void * ptr) {
-	doYourWork(ptr);
-    }
-    virtual void *doYourWork(void *);
 };
 }
 
