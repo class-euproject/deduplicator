@@ -29,7 +29,7 @@ char* WebServer::doYourWork(char * msg, int msglen) {
     cout << "WebServer::doYourWork()" << endl;
     
     cout << "Here is the message: " << msg << endl;
-    
-    return buildResponse("I got your message");
+    char * res = buildResponse("I got your message");
+    cout << "res is " << res << endl;
 }
 }

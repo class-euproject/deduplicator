@@ -64,7 +64,7 @@ void *Server::serverThrdFn(void * ptr) {
         char * ret = doYourWork(&buffer[0], n);
 
         cout << "ret is " << ret << " and its length is " << strlen(ret) << endl;
-        n = write(newsockfd, ret, 18);
+        n = write(newsockfd, ret, strlen(ret));
         if (n < 0)
             error("ERROR writing to socket");
 
