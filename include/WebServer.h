@@ -7,6 +7,10 @@ namespace fog {
 
 class WebServer : public Server {
 
+private:
+    char responseBuffer[1024];
+    char *buildResponse(char});
+
 public:
     WebServer() : Server(80) { }
 
