@@ -63,6 +63,7 @@ char * WebServer::buildResponse(int status, char * res, char * contentType) {
     return (char *) retval.c_str();
 }
 
+Se fai la stessa richiesta duevolte di seguito, fallosce. Problema di buffer...
 char* toJson(MasaMessage *m) {
     string json = "{\n";
     json.append("\t\"cam_idx\" : " + to_string (m->cam_idx) + ",\n");
@@ -92,8 +93,9 @@ char* WebServer::handleBus(string s) {
     m->num_objects = 11;
     ///
 
-    json = toJson(m);
-    return buildResponse(200, (char *) json.c_str(), (char *) "application/json");
+    char *json = toJson(m);
+    delete m;
+    return buildResponse(200, json, (char *) "application/json");
 }
 
 char* WebServer::handleOptions() {
