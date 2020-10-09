@@ -9,9 +9,9 @@ using namespace std;
 
 namespace fog{
     
-map<string, string> query;
-string retval;
-
+string retval; // Buffer for HTTP response
+map<string, string> query; // We store the query
+map<int, string> statuses = map_list_of (200, "OK") (400, "Bad request") (404, "Not found") (405, "Unsupported") (500, "Internal error")
 
 int WebServer::parseQueryString(string querystring) {
     vector<string> split, split2;
@@ -32,22 +32,29 @@ int WebServer::parseQueryString(string querystring) {
     return 0;
 }
 
-int WebServer::handleBus(string s) {
-    cout << "handleBus(\"" << s << "\")" << endl;
-
-    retval = "";
-    char *res = "Hello World!";
-    retval.append("HTTP/1.1 200 OK\n");
+char * WebServer::buildResponse(int status, char * res) {
+    retval = "HTTP/1.1 " + to_string(status) + " " + statuses[status] +"\n";
     retval.append("Cache-Control: no-cache\n");
     retval.append("Pragma: no-cache\n");
     retval.append("Access-Control-Allow-Origin: *\n");
     retval.append("Access-Control-Allow-Headers: *\n");
-    retval.append("Content-Type: text/plain\n");
-    retval.append("Content-Length: " + to_string (strlen(res)) + "\n");
-    retval.append("\n");
-    retval.append(res);
     
-    return 200;
+    if(res == NULL)
+        retval.append("Content-Length: 0\n");
+    else
+        retval.append("Content-Length: " + to_string (strlen(res)) + "\n");
+    retval.append("\n");
+
+    if(res != null)
+        retval.append(res);
+
+    return retval.c_str();
+}
+
+int WebServer::handleBus(string s) {
+    cout << "handleBus(\"" << s << "\")" << endl;
+
+    return buildResponse(200, "Hello World!");
         
     // if(int err = parseQueryString(s))
     //     return err;
@@ -72,65 +79,39 @@ int WebServer::handleBus(string s) {
     // return 500;
 }
 
-int WebServer::handleOptions() {
-    retval = "";
-    retval.append("HTTP/1.1 200 OK\n");
+char* WebServer::handleOptions() {
+    retval = "HTTP/1.1 200 OK\n";
     retval.append("Content-Length: 0\n");
     retval.append("Connection: keep-alive\n");
     retval.append("Access-Control-Allow-Origin: *\n");
     retval.append("Access-Control-Allow-Headers: *\n");
     retval.append("Access-Control-Allow-Methods: GET, OPTIONS\n");
     retval.append("\n");
-    return 200;
+    return retval.c_str();
 }
 
 char* WebServer::doYourWork(char * req, int reqlen) {
-    int r = process(req);
-    cout << "Status code is: " << r << endl;
-    if(r != 200) {
-    //    retval.append("HTTP/1.1 500 Internal error\n"); // TODO
-        retval.append("Cache-Control: no-cache\n");
-        retval.append("Pragma: no-cache\n");
-        retval.append("Access-Control-Allow-Origin: *\n");
-        retval.append("Access-Control-Allow-Headers: *\n");
-        retval.append("Content-Length: 0\n");
-        retval.append("\n");
-    }
-
-    return (char *)retval.c_str();
-}
-
-int WebServer::process(char * req) {
     retval = "";
     vector<string> strs;
     
     boost::split(strs, req, boost::is_any_of("\n"));
 
-    if(strs.size() < 1) {
-        retval = "Bad request";
-        return 400; // Malformed header
-    }
+    if(strs.size() < 1)
+        return buildResponse(400);
     
     boost::split(strs, strs.at(0), boost::is_any_of(" "));
 
-    if(strs.size() != 3) {
-        retval = "Bad request";
-        return 400; // Malformed header
-    }
+    if(strs.size() != 3)
+        return buildResponse(400);
 
-    if(strs.at(0) == "OPTIONS") {
+    if(strs.at(0) == "OPTIONS")
         return handleOptions();
-    }
 
-    else if(strs.at(0) == "GET")  {
-        // Try to identify the EP
-        
+    else if(strs.at(0) == "GET")  {        
         boost::split(strs, strs.at(1), boost::is_any_of("?"));
 
-        if(strs.size() < 1 && strs.at(0) != "") {
-            retval = "Bad request";
-            return 400; // Malformed header
-        }
+        if(strs.size() < 1 && strs.at(0) != "")
+        return buildResponse(400);
     
         string querystring = "";
         // 0 -> Endpoint; 1-> query string
@@ -140,16 +121,13 @@ int WebServer::process(char * req) {
         pfunc f = funcMap[strs.at(0)];
         if(f == NULL) {
             cout << "Handler for endpoint '" << strs.at(0) << "' not found" << endl;
-            retval = "Not found";
-            return 404; // Ep not found
+            return buildResponse(404);
         }
 
         return (this->*f)(querystring);
 
     }
-    else {
-        retval = "Unsupported method";
-        return 405; // Unsupported
-    }
+    else
+        return buildResponse(405);
 }
 }
