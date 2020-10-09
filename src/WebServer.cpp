@@ -18,6 +18,10 @@ map<int, string> statuses = map_list_of (200, "OK") (400, "Bad request") (404, "
 int WebServer::parseQueryString(string querystring) {
     vector<string> split, split2;
     boost::split(split, querystring, boost::is_any_of("&"));
+    
+    // for(map<string, string>::iterator it = query.begin(); it != query.end(); ++it)
+    //     std::cout << it->first << " :: " << it->second << std::endl;
+    
     query.clear();
     for(int i=0; i< split.size(); i++) {
         if(split.at(i) != "") {
@@ -34,13 +38,15 @@ int WebServer::parseQueryString(string querystring) {
     return 0;
 }
 
-char * WebServer::buildResponse(int status, char * res) {
+char * WebServer::buildResponse(int status, char * res, char * contentType) {
     retval = "HTTP/1.1 " + to_string(status) + " " + statuses[status] +"\n";
     retval.append("Cache-Control: no-cache\n");
     retval.append("Pragma: no-cache\n");
     retval.append("Access-Control-Allow-Origin: *\n");
     retval.append("Access-Control-Allow-Headers: *\n");
-    retval.append("Content-Type: text/plaini\n");
+    if(contentType != NULL)
+        retval.append("Content-Type: " + contentType + "\n");
+
     if(res == NULL)
         retval.append("Content-Length: 0\n");
     else
@@ -56,29 +62,24 @@ char * WebServer::buildResponse(int status, char * res) {
 char* WebServer::handleBus(string s) {
     cout << "handleBus(\"" << s << "\")" << endl;
 
-    return buildResponse(200, "Hello World!");
+    return buildResponse(200, "Hello World!", "text/plain");
         
-    // if(int err = parseQueryString(s))
-    //     return err;
+    if(int err = parseQueryString(s))
+        return err;
 
-    // if(query.size() == 0 || query["id"] == "") {
-    //     retval = "'id' param not specified";
-    //     return 400;
-    // }
+    if(query.size() == 0 || query["id"] == "") {
+        cout << "ERROR. 'id' param not specified" << endl;
+        return buildResponse(400);
+    }
 
-    // retval = "";
+    // TODO fetch infos from aggregator
     
-    // retval.append("[\n");
-    // retval.append("\t{ \"cam_idx\" : " + to_string (107) + " },\n");
-    // retval.append("\t{ \"t_stamp_ms\" : " + to_string (16353) + " },\n");
-    // retval.append("\t{ \"num_objects\" : " + to_string (10) + " },\n");
-    // retval.append("]");
-    // return 200;
-    // for(map<string, string>::iterator it = query.begin(); it != query.end(); ++it)
-    //     std::cout << it->first << " :: " << it->second << std::endl;
-
-    // retval = "Internal error";
-    // return 500;
+    string json = "[\n";
+    json.append("\t{ \"cam_idx\" : " + to_string (107) + " },\n");
+    json.append("\t{ \"t_stamp_ms\" : " + to_string (16353) + " },\n");
+    json.append("\t{ \"num_objects\" : " + to_string (10) + " },\n");
+    json.append("]");
+    return buildResponse(200, json, "application/json");
 }
 
 char* WebServer::handleOptions() {

@@ -16,7 +16,7 @@ typedef char * (WebServer::*pfunc)(string);
 
 private:
     char responseBuffer[1024];
-    char * buildResponse(int, char* = NULL);
+    char * buildResponse(int, char* = NULL, char* = NULL);
     int parseQueryString(string);
     char * handleBus(string);
     char * handleOptions();
