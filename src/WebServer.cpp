@@ -44,8 +44,11 @@ char * WebServer::buildResponse(int status, char * res, char * contentType) {
     retval.append("Pragma: no-cache\n");
     retval.append("Access-Control-Allow-Origin: *\n");
     retval.append("Access-Control-Allow-Headers: *\n");
-    if(contentType != NULL)
-        retval.append("Content-Type: " + contentType + "\n");
+    if(contentType != NULL) {
+        retval.append("Content-Type: ");
+        retval.append(contentType);
+        retval.append("\n");
+    }
 
     if(res == NULL)
         retval.append("Content-Length: 0\n");
@@ -62,10 +65,10 @@ char * WebServer::buildResponse(int status, char * res, char * contentType) {
 char* WebServer::handleBus(string s) {
     cout << "handleBus(\"" << s << "\")" << endl;
 
-    return buildResponse(200, "Hello World!", "text/plain");
+//    return buildResponse(200, "Hello World!", "text/plain");
         
     if(int err = parseQueryString(s))
-        return err;
+        return buildResponse(err);
 
     if(query.size() == 0 || query["id"] == "") {
         cout << "ERROR. 'id' param not specified" << endl;
@@ -79,7 +82,7 @@ char* WebServer::handleBus(string s) {
     json.append("\t{ \"t_stamp_ms\" : " + to_string (16353) + " },\n");
     json.append("\t{ \"num_objects\" : " + to_string (10) + " },\n");
     json.append("]");
-    return buildResponse(200, json, "application/json");
+    return buildResponse(200, (char *) json.c_str(), (char *) "application/json");
 }
 
 char* WebServer::handleOptions() {
