@@ -38,19 +38,20 @@ int WebServer::parseQueryString(string querystring) {
 int WebServer::handleBus(string s) {
     cout << "handleBus(\"" << s << "\")" << endl;
 
+    retval = "";
     char *res = "Hello World!";
-    out.append("HTTP/1.1 200 OK\n");
-    out.append("Cache-Control: no-cache\n");
-    out.append("Pragma: no-cache\n");
-    out.append("Access-Control-Allow-Origin: *\n");
-    out.append("Access-Control-Allow-Headers: *\n");
-    out.append("Content-Type: text/plain\n");
-    out.append("Content-Length: " + to_string (strlen(res)) + "\n");
-    out.append("\n");
-    out.append(res);
+    retval.append("HTTP/1.1 200 OK\n");
+    retval.append("Cache-Control: no-cache\n");
+    retval.append("Pragma: no-cache\n");
+    retval.append("Access-Control-Allow-Origin: *\n");
+    retval.append("Access-Control-Allow-Headers: *\n");
+    retval.append("Content-Type: text/plain\n");
+    retval.append("Content-Length: " + to_string (strlen(res)) + "\n");
+    retval.append("\n");
+    retval.append(res);
     
-    return (char *) out.c_str();
-    
+    return 200;
+        
     // if(int err = parseQueryString(s))
     //     return err;
 
@@ -86,7 +87,22 @@ int WebServer::handleOptions() {
 }
 
 char* WebServer::doYourWork(char * req, int reqlen) {
+    int r = process(req);
+    
+    if(ret != 200) {
+        retval.append("HTTP/1.1 500 Internal error\n"); // TODO
+        retval.append("Cache-Control: no-cache\n");
+        retval.append("Pragma: no-cache\n");
+        retval.append("Access-Control-Allow-Origin: *\n");
+        retval.append("Access-Control-Allow-Headers: *\n");
+        retval.append("Content-Length: 0\n");
+        retval.append("\n");
+    }
 
+    return retval.c_str();
+}
+
+int WebServer::process(char * req) {
     retval = "";
     vector<string> strs;
     
