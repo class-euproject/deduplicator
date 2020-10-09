@@ -9,9 +9,6 @@ using namespace std;
 
 namespace fog{
     
-typedef int (*pfunc)(string);
-
-map<string, pfunc> funcMap;
 map<string, string> query;
 string retval;
 
@@ -84,13 +81,14 @@ int WebServer::handleOptions() {
     retval.append("Access-Control-Allow-Headers: *\n");
     retval.append("Access-Control-Allow-Methods: GET, OPTIONS\n");
     retval.append("\n");
+    return 200;
 }
 
 char* WebServer::doYourWork(char * req, int reqlen) {
     int r = process(req);
-    
-    if(ret != 200) {
-        retval.append("HTTP/1.1 500 Internal error\n"); // TODO
+    cout << "Status code is: " << r << endl;
+    if(r != 200) {
+    //    retval.append("HTTP/1.1 500 Internal error\n"); // TODO
         retval.append("Cache-Control: no-cache\n");
         retval.append("Pragma: no-cache\n");
         retval.append("Access-Control-Allow-Origin: *\n");
@@ -99,26 +97,24 @@ char* WebServer::doYourWork(char * req, int reqlen) {
         retval.append("\n");
     }
 
-    return retval.c_str();
+    return (char *)retval.c_str();
 }
 
 int WebServer::process(char * req) {
     retval = "";
     vector<string> strs;
     
-    cout << "Received request : " << req << endl << endl;
-    
     boost::split(strs, req, boost::is_any_of("\n"));
 
     if(strs.size() < 1) {
-        retval = "Malformed request header";
+        retval = "Bad request";
         return 400; // Malformed header
     }
     
     boost::split(strs, strs.at(0), boost::is_any_of(" "));
 
     if(strs.size() != 3) {
-        retval = "Malformed request header";
+        retval = "Bad request";
         return 400; // Malformed header
     }
 
@@ -132,7 +128,7 @@ int WebServer::process(char * req) {
         boost::split(strs, strs.at(1), boost::is_any_of("?"));
 
         if(strs.size() < 1 && strs.at(0) != "") {
-            retval = "Malformed request header";
+            retval = "Bad request";
             return 400; // Malformed header
         }
     
@@ -143,14 +139,16 @@ int WebServer::process(char * req) {
             
         pfunc f = funcMap[strs.at(0)];
         if(f == NULL) {
-            retval = "Endpoint '" + strs.at(0) + "' not found";
+            cout << "Handler for endpoint '" << strs.at(0) << "' not found" << endl;
+            retval = "Not found";
             return 404; // Ep not found
         }
 
-        return (*f)(querystring);
+        return (this->*f)(querystring);
+
     }
     else {
-        retval = "Unsupported method '" + strs.at(0) + "'";
+        retval = "Unsupported method";
         return 405; // Unsupported
     }
 }
