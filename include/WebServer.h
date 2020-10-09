@@ -10,6 +10,9 @@ class WebServer : public Server {
 private:
     char responseBuffer[1024];
     char *buildResponse(char*);
+    int parseQueryString(string);
+    int handleBus(string);
+    int handleOptions();
 
 public:
     WebServer() : Server(80) { }
