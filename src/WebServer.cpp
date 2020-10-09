@@ -5,6 +5,7 @@
 #include <boost/assign.hpp>
 #include <vector>
 #include <map>
+#include "../masa_protocol/include/messages.hpp"
 
 using namespace std;
 using namespace boost::assign;
@@ -62,6 +63,15 @@ char * WebServer::buildResponse(int status, char * res, char * contentType) {
     return (char *) retval.c_str();
 }
 
+char* toJson(MasaMessage *m) {
+    string json = "{\n";
+    json.append("\t\"cam_idx\" : " + to_string (m->cam_idx) + ",\n");
+    json.append("\t\"t_stamp_ms\" : " + to_string (m->t_stamp_ms) + ",\n");
+    json.append("\t\"num_objects\" : " + to_string (m->num_objects) + "\n");
+    json.append("}");
+    return (char *) json.c_str();
+}
+
 char* WebServer::handleBus(string s) {
     cout << "handleBus(\"" << s << "\")" << endl;
 
@@ -76,15 +86,13 @@ char* WebServer::handleBus(string s) {
     }
 
     // TODO fetch infos from aggregator
-    
-    int id = stoi(query["id"]);
-    long tstamp = 1122334455;
-    int numObjects = 11;
-    string json = "{\n";
-    json.append("\t\"cam_idx\" : " + to_string (id) + ",\n");
-    json.append("\t\"t_stamp_ms\" : " + to_string (tstamp) + ",\n");
-    json.append("\t\"num_objects\" : " + to_string (numObjects) + "\n");
-    json.append("}");
+    MasaMessage *m = new MasaMessage;
+    m->cam_idx = stoi(query["id"]);
+    m->t_stamp_ms = 1122334455;
+    m->num_objects = 11;
+    ///
+
+    json = toJson(m);
     return buildResponse(200, (char *) json.c_str(), (char *) "application/json");
 }
 
