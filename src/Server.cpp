@@ -61,7 +61,7 @@ void *Server::serverThrdFn(void * ptr) {
         if (n < 0)
             error("ERROR reading from socket");
 
-	cout << "Received this " << buffer << endl;
+	    //cout << "Request: " << buffer << endl;
 
         char * ret = doYourWork(&buffer[0], n);
         cout << "ret is " << ret << " and its length is " << strlen(ret) << endl;
@@ -74,7 +74,7 @@ void *Server::serverThrdFn(void * ptr) {
     }
 }
 
-char* Server::doYourWork(char * msg, int msglen) {
+char* Server::doYourWork(char * req, int reqlen) {
     cout << "Server::doYourWork()" << endl;
 }
 }
