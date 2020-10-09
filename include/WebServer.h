@@ -12,10 +12,11 @@ namespace fog {
 
 class WebServer : public Server {
 
-typedef int (WebServer::*pfunc)(string);
+typedef char * (WebServer::*pfunc)(string);
+
 private:
     char responseBuffer[1024];
-    char * buildResponse(int, char*);
+    char * buildResponse(int, char* = NULL);
     int parseQueryString(string);
     char * handleBus(string);
     char * handleOptions();

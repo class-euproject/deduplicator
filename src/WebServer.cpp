@@ -2,16 +2,18 @@
 #include <iostream>
 #include <string>
 #include <boost/algorithm/string.hpp>
+#include <boost/assign.hpp>
 #include <vector>
 #include <map>
 
 using namespace std;
+using namespace boost::assign;
 
 namespace fog{
     
 string retval; // Buffer for HTTP response
 map<string, string> query; // We store the query
-map<int, string> statuses = map_list_of (200, "OK") (400, "Bad request") (404, "Not found") (405, "Unsupported") (500, "Internal error")
+map<int, string> statuses = map_list_of (200, "OK") (400, "Bad request") (404, "Not found") (405, "Unsupported") (500, "Internal error");
 
 int WebServer::parseQueryString(string querystring) {
     vector<string> split, split2;
@@ -38,20 +40,20 @@ char * WebServer::buildResponse(int status, char * res) {
     retval.append("Pragma: no-cache\n");
     retval.append("Access-Control-Allow-Origin: *\n");
     retval.append("Access-Control-Allow-Headers: *\n");
-    
+    retval.append("Content-Type: text/plaini\n");
     if(res == NULL)
         retval.append("Content-Length: 0\n");
     else
         retval.append("Content-Length: " + to_string (strlen(res)) + "\n");
     retval.append("\n");
 
-    if(res != null)
+    if(res != NULL)
         retval.append(res);
 
-    return retval.c_str();
+    return (char *) retval.c_str();
 }
 
-int WebServer::handleBus(string s) {
+char* WebServer::handleBus(string s) {
     cout << "handleBus(\"" << s << "\")" << endl;
 
     return buildResponse(200, "Hello World!");
@@ -87,7 +89,7 @@ char* WebServer::handleOptions() {
     retval.append("Access-Control-Allow-Headers: *\n");
     retval.append("Access-Control-Allow-Methods: GET, OPTIONS\n");
     retval.append("\n");
-    return retval.c_str();
+    return (char *) retval.c_str();
 }
 
 char* WebServer::doYourWork(char * req, int reqlen) {
