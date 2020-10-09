@@ -24,7 +24,7 @@ int WebServer::parseQueryString(string querystring) {
     
     query.clear();
     for(int i=0; i< split.size(); i++) {
-        if(split.at(i) != "") {
+        if(split.at(i) != "" && split.at(i) != "%22%22") {
             cout << "[" << i << "] " << split.at(i) << endl;
             boost::split(split2, split.at(i), boost::is_any_of("="));
             string val = "";
@@ -77,11 +77,14 @@ char* WebServer::handleBus(string s) {
 
     // TODO fetch infos from aggregator
     
-    string json = "[\n";
-    json.append("\t{ \"cam_idx\" : " + to_string (107) + " },\n");
-    json.append("\t{ \"t_stamp_ms\" : " + to_string (16353) + " },\n");
-    json.append("\t{ \"num_objects\" : " + to_string (10) + " },\n");
-    json.append("]");
+    int id = stoi(query["id"]);
+    long tstamp = 1122334455;
+    int numObjects = 11;
+    string json = "{\n";
+    json.append("\t\"cam_idx\" : " + to_string (id) + ",\n");
+    json.append("\t\"t_stamp_ms\" : " + to_string (tstamp) + ",\n");
+    json.append("\t\"num_objects\" : " + to_string (numObjects) + "\n");
+    json.append("}");
     return buildResponse(200, (char *) json.c_str(), (char *) "application/json");
 }
 
