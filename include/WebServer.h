@@ -4,13 +4,14 @@
 #include "Server.h"
 #include <string>
 #include <map>
+#include "IMessageListener.h"
 
 using namespace std;
 
 namespace fog {
 
 
-class WebServer : public Server {
+class WebServer : public Server, IMessageListener {
 
 typedef char * (WebServer::*pfunc)(string);
 
@@ -29,6 +30,7 @@ public:
     }
 
     char * doYourWork(char *, int) override;
+    void OnMessageReceived(MasaMessag e*) override;
 };
 }
 

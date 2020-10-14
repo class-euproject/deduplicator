@@ -27,7 +27,7 @@ int WebServer::parseQueryString(string querystring) {
     
     query.clear();
     for(int i=0; i< split.size(); i++) {
-        if(split.at(i) != "" && split.at(i) != "%22%22") {
+        if(split.at(i) != "" && split.at(i) != "%22%22") { //TODO Horrible fix: check Seta.html webpage and JS
             cout << "[" << i << "] " << split.at(i) << endl;
             boost::split(split2, split.at(i), boost::is_any_of("="));
             string val = "";
@@ -43,6 +43,7 @@ int WebServer::parseQueryString(string querystring) {
 
 char * WebServer::buildResponse(int status, char * res, char * contentType) {
     retval = "HTTP/1.1 " + to_string(status) + " " + statuses[status] +"\n";
+    // These two headers are old and deprected on modern browsers, e.g., Chrome
     //retval.append("Cache-Control: no-cache\n");
     //retval.append("Pragma: no-cache\n");
     retval.append("Access-Control-Allow-Origin: *\n");
@@ -66,9 +67,10 @@ char * WebServer::buildResponse(int status, char * res, char * contentType) {
 
     return (char *) retval.c_str();
 }
+
 string json;
-// TODO Se fai la stessa richiesta duevolte di seguito, fallosce. Problema di buffer...
 char* toJson(MasaMessage *m) {
+    //TODO PB use a real lib for JSON
     json = "{\n";
     json.append("\t\"cam_idx\" : " + to_string (m->cam_idx) + ",\n");
     json.append("\t\"t_stamp_ms\" : " + to_string (m->t_stamp_ms) + ",\n");
@@ -102,6 +104,7 @@ char* WebServer::handleBus(string s) {
     return buildResponse(200, json, (char *) "application/json");
 }
 
+//TODO PB create a real "HttpUtils" class, or use some kind of Http lib
 char* WebServer::handleOptions() {
     retval = "HTTP/1.1 200 OK\n";
     retval.append("Content-Length: 0\n");
@@ -135,7 +138,7 @@ char* WebServer::doYourWork(char * req, int reqlen) {
         boost::split(strs, strs.at(1), boost::is_any_of("?"));
 
         if(strs.size() < 1 && strs.at(0) != "")
-        return buildResponse(400);
+            return buildResponse(400);
     
         string querystring = "";
         // 0 -> Endpoint; 1-> query string
@@ -154,4 +157,9 @@ char* WebServer::doYourWork(char * req, int reqlen) {
     else
         return buildResponse(405);
 }
+
+void WebServer::OnMessageReceived(MasaMessage *mm) {
+    cout << "Received message from " << mm->cam_idx << endl;
+}
+
 }

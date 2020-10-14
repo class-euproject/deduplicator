@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
     s.start();
 
     fog::WebServer ws;
+    r.registerListener(ws);
     ws.start();
 
     v.joinThread();

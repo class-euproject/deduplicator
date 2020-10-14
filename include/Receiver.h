@@ -11,8 +11,11 @@
 #include "ClassAggregatorMessage.h"
 #include "LogWriter.h"
 #include "../masa_protocol/include/communicator.hpp"
+#include <vector>
 
-// TODO SAPIENZA you don't include pthread.h here..
+#include "IMessageListener.h"
+
+//TODO SAPPI you don't include pthread.h here..
 
 namespace fog {
 
@@ -28,6 +31,10 @@ private:
     int port;
     int socketDesc;
     Communicator<MasaMessage> *comm;
+
+    std::vector<IMessageListener> _messageListeners;
+
+    void OnMessageReceived(MasaMessage *);
 public:    
     Receiver(ClassAggregatorMessage &sharedMessage,
              int port_, bool logWriterFlag);
@@ -35,6 +42,8 @@ public:
     void start();
     void end();
     void *receive(void *n);
+
+    void registerListener(IMessageListener);
 };
 }
 
