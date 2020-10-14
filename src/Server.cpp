@@ -61,7 +61,7 @@ void *Server::serverThrdFn(void * ptr) {
         if (n < 0)
             error("ERROR reading from socket");
 
-	    cout << "REQUEST:" << endl << buffer << endl << endl;
+	    //cout << "REQUEST:" << endl << buffer << endl << endl;
 
         char * ret = doYourWork(&buffer[0], n);
         cout << "RESPONSE:" << endl << ret << endl << endl;

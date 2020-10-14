@@ -22,7 +22,7 @@ private:
     int portno;
     pthread_t serverThrd;
     
-    const static long BUFSIZE = 256;
+    const static long BUFSIZE = 1024;
     char buffer[BUFSIZE];
     void *serverThrdFn(void * ptr);
 

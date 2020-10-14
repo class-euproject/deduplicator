@@ -6,6 +6,8 @@
 #include <vector>
 #include <map>
 #include "../masa_protocol/include/messages.hpp"
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 using namespace boost::assign;
@@ -41,10 +43,11 @@ int WebServer::parseQueryString(string querystring) {
 
 char * WebServer::buildResponse(int status, char * res, char * contentType) {
     retval = "HTTP/1.1 " + to_string(status) + " " + statuses[status] +"\n";
-    retval.append("Cache-Control: no-cache\n");
-    retval.append("Pragma: no-cache\n");
+    //retval.append("Cache-Control: no-cache\n");
+    //retval.append("Pragma: no-cache\n");
     retval.append("Access-Control-Allow-Origin: *\n");
     retval.append("Access-Control-Allow-Headers: *\n");
+    retval.append("Access-Control-Allow-Credentials: true\n");
     if(contentType != NULL) {
         retval.append("Content-Type: ");
         retval.append(contentType);
@@ -55,17 +58,18 @@ char * WebServer::buildResponse(int status, char * res, char * contentType) {
         retval.append("Content-Length: 0\n");
     else
         retval.append("Content-Length: " + to_string (strlen(res)) + "\n");
-    retval.append("\n");
 
-    if(res != NULL)
+    if(res != NULL){
+        retval.append("\n");
         retval.append(res);
+    }
 
     return (char *) retval.c_str();
 }
-
-Se fai la stessa richiesta duevolte di seguito, fallosce. Problema di buffer...
+string json;
+// TODO Se fai la stessa richiesta duevolte di seguito, fallosce. Problema di buffer...
 char* toJson(MasaMessage *m) {
-    string json = "{\n";
+    json = "{\n";
     json.append("\t\"cam_idx\" : " + to_string (m->cam_idx) + ",\n");
     json.append("\t\"t_stamp_ms\" : " + to_string (m->t_stamp_ms) + ",\n");
     json.append("\t\"num_objects\" : " + to_string (m->num_objects) + "\n");
@@ -90,7 +94,7 @@ char* WebServer::handleBus(string s) {
     MasaMessage *m = new MasaMessage;
     m->cam_idx = stoi(query["id"]);
     m->t_stamp_ms = 1122334455;
-    m->num_objects = 11;
+    m->num_objects = rand()%30+1;
     ///
 
     char *json = toJson(m);
@@ -105,6 +109,7 @@ char* WebServer::handleOptions() {
     retval.append("Access-Control-Allow-Origin: *\n");
     retval.append("Access-Control-Allow-Headers: *\n");
     retval.append("Access-Control-Allow-Methods: GET, OPTIONS\n");
+    retval.append("Access-Control-Allow-Credentials: true\n");
     retval.append("\n");
     return (char *) retval.c_str();
 }

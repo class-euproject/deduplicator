@@ -37,6 +37,7 @@ void * Receiver::receive(void *n) {
         prof.tick("total time");
         prof.tick("insert message");
         this->cm->insertMessage(*m);
+        std::cout << "Received message from " << m->cam_idx << std::endl;
         prof.tock("insert message");
         if(lw_flag) {
             prof.tick("write edge");
