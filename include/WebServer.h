@@ -21,6 +21,7 @@ private:
     int parseQueryString(string);
     char * handleBus(string);
     char * handleOptions();
+    map<int, MasaMessage*> _messages;
 
     map<string, pfunc> funcMap;
 

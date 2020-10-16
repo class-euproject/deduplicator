@@ -92,13 +92,19 @@ char* WebServer::handleBus(string s) {
         return buildResponse(400);
     }
 
-    // TODO fetch infos from aggregator
+    int idx = atoi(query["id"].c_str());
+    idx += 10000;
+    cout << "Checkin bus " << idx << endl;
     MasaMessage *m = new MasaMessage;
     m->cam_idx = stoi(query["id"]);
     m->t_stamp_ms = 1122334455;
     m->num_objects = rand()%30+1;
-    ///
+    
+    
+    if(_messages.count(idx) <= 0)
+      return buildResponse(200, "{ }", (char *) "application/json");
 
+    m = _messages[idx];
     char *json = toJson(m);
     delete m;
     return buildResponse(200, json, (char *) "application/json");
@@ -159,7 +165,21 @@ char* WebServer::doYourWork(char * req, int reqlen) {
 }
 
 void WebServer::OnMessageReceived(MasaMessage *mm) {
-    cout << "Received message from " << mm->cam_idx << " num_objects is " << mm->num_objects << endl;
+    MasaMessage * newm = new MasaMessage;
+    newm->cam_idx = mm ->cam_idx;
+    newm->t_stamp_ms = mm->t_stamp_ms;
+    newm->num_objects = mm->num_objects;
+
+    //cout << " There are " << _messages.count(mm->cam_idx) << " messages from IDX " << mm->cam_idx << endl;
+    cout << " There are " << mm->num_objects << " people on bus from IDX " << mm->cam_idx << endl;
+
+    // The old message will be destroyed, so create a copy
+    if(_messages.count(mm->cam_idx) > 0) {
+      _messages.erase(mm->cam_idx);
+      //cout << "There are " << mm->num_objects << " people previously onboard" << endl;
+    }
+    _messages.insert(std::pair<int, MasaMessage*>(mm->cam_idx, newm));
+
 }
 
 }
