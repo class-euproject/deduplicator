@@ -11,7 +11,7 @@ using namespace std;
 namespace fog {
 
 
-class WebServer : public Server, IMessageListener {
+class WebServer : public Server, public IMessageListener {
 
 typedef char * (WebServer::*pfunc)(string);
 
@@ -30,7 +30,7 @@ public:
     }
 
     char * doYourWork(char *, int) override;
-    void OnMessageReceived(MasaMessag e*) override;
+    void OnMessageReceived(MasaMessage *) override;
 };
 }
 

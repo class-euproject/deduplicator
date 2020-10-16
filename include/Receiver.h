@@ -32,7 +32,7 @@ private:
     int socketDesc;
     Communicator<MasaMessage> *comm;
 
-    std::vector<IMessageListener> _messageListeners;
+    std::vector<IMessageListener*> * _messageListeners;
 
     void OnMessageReceived(MasaMessage *);
 public:    
@@ -43,7 +43,7 @@ public:
     void end();
     void *receive(void *n);
 
-    void registerListener(IMessageListener);
+    void registerListener(IMessageListener*);
 };
 }
 

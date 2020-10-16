@@ -159,7 +159,7 @@ char* WebServer::doYourWork(char * req, int reqlen) {
 }
 
 void WebServer::OnMessageReceived(MasaMessage *mm) {
-    cout << "Received message from " << mm->cam_idx << endl;
+    cout << "Received message from " << mm->cam_idx << " num_objects is " << mm->num_objects << endl;
 }
 
 }

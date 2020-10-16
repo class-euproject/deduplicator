@@ -8,6 +8,7 @@ class IMessageListener{
 
     public:
         virtual void OnMessageReceived(MasaMessage*) = 0;
-}}
+};
+}
 
 #endif /* IMESSAGELISTENER_H */

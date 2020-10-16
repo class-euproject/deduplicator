@@ -9,7 +9,8 @@ Receiver::Receiver(ClassAggregatorMessage &sharedMessage,
     lw_flag = logWriterFlag;
     lw = new LogWriter("../demo/data/class_edge_log/");
     comm = new Communicator<MasaMessage>(SOCK_DGRAM);
-    
+    _messageListeners = new std::vector<IMessageListener*>();
+
     comm->open_server_socket(port);
     socketDesc = comm->get_socket();
     if (socketDesc == -1)
@@ -21,12 +22,14 @@ Receiver::~Receiver() {
     delete comm;
 }
 
-void Receiver::registerListener(IMessageListener ml){
-    
+void Receiver::registerListener(IMessageListener *ml){
+    _messageListeners->insert(_messageListeners->begin(), ml);
 }
 
-void OnMessageReceived(MasaMessage * mm) {
-
+void Receiver::OnMessageReceived(MasaMessage * m) {
+    for (const auto &l : *_messageListeners){
+      l->OnMessageReceived(m);
+    }
 }
 
 void Receiver::start() {
@@ -45,7 +48,6 @@ void * Receiver::receive(void *n) {
         prof.tick("total time");
         prof.tick("insert message");
         this->cm->insertMessage(*m);
-        std::cout << "Received message from " << m->cam_idx << std::endl;
         // Notify listeners
         OnMessageReceived(m);
         prof.tock("insert message");
