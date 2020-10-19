@@ -54,7 +54,8 @@ int main(int argc, char **argv) {
     r.registerListener(&ws);
     ws.start();
 
-    v.joinThread();
+    if(param.visualization)
+        v.joinThread();
     ws.end();
     r.end();
     d.end();

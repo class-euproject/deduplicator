@@ -37,9 +37,10 @@ void Server::start() {
 }
 
 void Server::end() {
-    pthread_join(serverThrd, NULL);
-
-    close(sockfd);
+    if(serverThrd != NULL)
+        pthread_join(serverThrd, NULL);
+    if(sockfd >= 0)
+        close(sockfd);
 }
 
 void *Server::serverThrdFn(void * ptr) {
