@@ -1,0 +1,3 @@
+[submodule "masa_protocol"]
+	path = masa_protocol
+	url = https://git.hipert.unimore.it/rcavicchioli/masa_protocol.git
