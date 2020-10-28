@@ -1,0 +1,19 @@
+# Don't track content of theese folders #
+demo/data/
+build/
+.vscode/
+.idea/
+
+# Compiled source #
+*.bin
+*.pyc
+*.o
+*~
+
+# Packages #
+*.zip
+*.tag.gz
+
+# Data files #
+*.txt
+*.weights
