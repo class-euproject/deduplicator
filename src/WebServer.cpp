@@ -95,16 +95,16 @@ char* WebServer::handleBus(string s) {
     int idx = atoi(query["id"].c_str());
     idx += 10000;
     cout << "Checkin bus " << idx << endl;
-    MasaMessage *m = new MasaMessage;
-    m->cam_idx = stoi(query["id"]);
-    m->t_stamp_ms = 1122334455;
-    m->num_objects = rand()%30+1;
+    //MasaMessage *m = new MasaMessage;
+    //m->cam_idx = stoi(query["id"]);
+    //m->t_stamp_ms = 1122334455;
+    //m->num_objects = rand()%30+1;
     
     
     if(_messages.count(idx) <= 0)
       return buildResponse(200, "{ }", (char *) "application/json");
 
-    m = _messages[idx];
+    MasaMessage *m = _messages[idx];
     char *json = toJson(m);
     delete m;
     return buildResponse(200, json, (char *) "application/json");
