@@ -3,6 +3,7 @@ demo/data/
 build/
 .vscode/
 .idea/
+.cmake-build-debug/
 
 # Compiled source #
 *.bin
