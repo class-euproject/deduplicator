@@ -6,7 +6,25 @@
 
 namespace py = pybind11;
 
-MasaMessage compute_deduplicator(std::vector<MasaMessage> &input_messages) {
+Categories category_parse(int class_number) {
+    switch (class_number) {
+        case 0:
+            return C_person;
+        case 1:
+            return C_car;
+        case 3:
+            return C_bus;
+        case 4:
+            return C_motorbike;
+        case 5:
+            return C_bycicle;
+        default:
+            return C_rover; // TODO: No Categories for unknown or default class
+    }
+}
+
+std::vector<tracking::Tracker> compute_deduplicator(std::vector<std::vector<tracking::Tracker>> &input_trackers) {
+                                                    //, std::vector<uint32_t> cam_ids, std::vector<uint64_t> timestamps) {
     double latitude = 44.655540;
     double longitude = 10.934315;
     double *adfGeoTransform = (double *) calloc(6, sizeof(double));
@@ -17,9 +35,22 @@ MasaMessage compute_deduplicator(std::vector<MasaMessage> &input_messages) {
     adfGeoTransform[4] = 0;
     adfGeoTransform[5] = -8.79695e-07;
     static fog::Deduplicator deduplicator(adfGeoTransform, latitude, longitude);
-    MasaMessage message;
-    deduplicator.computeDeduplication(input_messages, message);
-    return message;
+    std::vector<MasaMessage> input_messages;
+    // TODO: check if correct below
+    // TODO: int i = 0;
+    for (std::vector<tracking::Tracker> &tracker_list : input_trackers) {
+        MasaMessage message;
+        deduplicator.create_message_from_tracker(tracker_list, &message);
+        // TODO: check if correct
+        // TODO: message.t_stamp_ms = timestamps[i];
+        // TODO: message.cam_idx = cam_ids[i];
+        input_messages.push_back(message);
+        //TODO: i++;
+    }
+    MasaMessage return_message;
+    deduplicator.computeDeduplication(input_messages, return_message);
+    return deduplicator.t->getTrackers();
+    // TODO: return MasaMessage;
 }
 
 /*

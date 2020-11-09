@@ -2,15 +2,14 @@
 
 namespace fog {
 
-void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers, MasaMessage *m, 
-                                 geodetic_converter::GeodeticConverter &gc, double *adfGeoTransform) {
+void Deduplicator::create_message_from_tracker(const std::vector<tracking::Tracker> &trackers, MasaMessage *m) {
     double lat, lon, alt;
     for (auto t : trackers) {
         if (t.predList.size() > 0) {
             Categories cat = (Categories) t.cl;
-            gc.enu2Geodetic(t.predList.back().x, t.predList.back().y, 0, &lat, &lon, &alt);
+            this->gc.enu2Geodetic(t.predList.back().x, t.predList.back().y, 0, &lat, &lon, &alt);
             int pix_x, pix_y;
-            GPS2pixel(adfGeoTransform, lat, lon, pix_x, pix_y);
+            GPS2pixel(this->adfGeoTransform, lat, lon, pix_x, pix_y);
             uint8_t orientation = orientation_to_uint8(t.predList.back().yaw);
             uint8_t velocity = speed_to_uint8(t.predList.back().vel);
             RoadUser r{static_cast<float>(lat), static_cast<float>(lon), velocity, orientation, cat};
@@ -23,7 +22,6 @@ void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers,
 Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage, 
                             ClassAggregatorMessage &outputSharedMessage,
                             std::string tifFile,
-                            AggregatorViewer &v,
                             bool visual) {
     inCm = &inputSharedMessage;
     outCm = &outputSharedMessage;
@@ -37,7 +35,6 @@ Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage,
     trVerbose = false;
     gc.initialiseReference(44.655540, 10.934315, 0);
     t = new tracking::Tracking(nStates, dt, initialAge);
-    viewer = &v;
     show = visual;
 }
 
@@ -131,7 +128,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     }
     this->t->track(cur_message,this->trVerbose);
 
-    create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
+    this->create_message_from_tracker(t->getTrackers(), &deduplicate_message);
 
     deduplicate_message.num_objects = deduplicate_message.objects.size();
 }
@@ -144,7 +141,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
 void * Deduplicator::deduplicate(void *n) {
     std::vector<MasaMessage> input_messages; 
     MasaMessage deduplicate_message;
-    std::vector<cv::Point2f> map_pixels;
+    // std::vector<cv::Point2f> map_pixels;
     // fog::Profiler prof("Deduplicator");
     while(gRun){
         /* Delay is necessary. If the Deduplicator takes messages too quickly there is a risk 

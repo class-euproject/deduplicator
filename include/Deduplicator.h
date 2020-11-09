@@ -7,7 +7,6 @@
 #include "ClassAggregatorMessage.h"
 #include "utils.h"
 #include "Profiler.h"
-#include "AggregatorViewer.h"
 #include "../class-tracker/include/obj.h"
 #include "../class-tracker/include/Tracking.h"
 
@@ -28,15 +27,14 @@ private:
     geodetic_converter::GeodeticConverter gc;
 
     pthread_t deduplicatorThread;
-    AggregatorViewer *viewer;
     bool show;
 public:
 
     tracking::Tracking *t;
+
     Deduplicator(ClassAggregatorMessage &inputSharedMessage, 
                  ClassAggregatorMessage &outputSharedMessage,
                  std::string tifFile,
-                 AggregatorViewer &v,
                  bool visual);
     Deduplicator(double* adfGeoTransform, double latitude, double longitude);
     ~Deduplicator();
@@ -45,6 +43,7 @@ public:
     std::vector<MasaMessage> filterOldMessages(std::vector<MasaMessage> input_messages);
     void computeDeduplication(std::vector<MasaMessage> input_messages, 
                               MasaMessage &deduplicate_message);
+    void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers, MasaMessage *m);
     void *deduplicate(void *n);
 };
 }

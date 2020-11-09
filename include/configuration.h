@@ -5,6 +5,7 @@
 #include <string>
 #include <algorithm>
 #include <yaml-cpp/yaml.h>
+#include <getopt.h>
 
 namespace fog {
 

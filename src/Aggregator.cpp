@@ -4,11 +4,9 @@ namespace fog {
 
 Aggregator::Aggregator(ClassAggregatorMessage &inputSharedMessage, 
                        ClassAggregatorMessage &outputSharedMessage,
-                       AggregatorViewer &v,
                        bool visual) {
     inCm = &inputSharedMessage;
     outCm = &outputSharedMessage;
-    viewer = &v;
     show = visual;
 }
 
