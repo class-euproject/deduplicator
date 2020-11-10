@@ -6,6 +6,6 @@ output_ips: 127.0.0.1
 cam_idx: 0
 tif_map: ../demo/data/MASA_4670.tif
 png_map: ../demo/data/MASA_4670.png
-visualization: true
+visualization: false
 edge_log_saving: true
 aggr_log_saving: true

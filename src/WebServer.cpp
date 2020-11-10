@@ -80,7 +80,7 @@ char* toJson(MasaMessage *m) {
 }
 
 char* WebServer::handleBus(string s) {
-    cout << "handleBus(\"" << s << "\")" << endl;
+    //cout << "handleBus(\"" << s << "\")" << endl;
 
 //    return buildResponse(200, "Hello World!", "text/plain");
         
@@ -94,7 +94,6 @@ char* WebServer::handleBus(string s) {
 
     int idx = atoi(query["id"].c_str());
     idx += 10000;
-    cout << "Checkin bus " << idx << endl;
     //MasaMessage *m = new MasaMessage;
     //m->cam_idx = stoi(query["id"]);
     //m->t_stamp_ms = 1122334455;
@@ -105,8 +104,12 @@ char* WebServer::handleBus(string s) {
       return buildResponse(200, "{ }", (char *) "application/json");
 
     MasaMessage *m = _messages[idx];
+    if(m->cam_idx > 10000)
+      m->cam_idx -= 10000;
     char *json = toJson(m);
-    delete m;
+
+    //delete m;
+
     return buildResponse(200, json, (char *) "application/json");
 }
 
