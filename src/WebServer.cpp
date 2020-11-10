@@ -69,15 +69,6 @@ char * WebServer::buildResponse(int status, char * res, char * contentType) {
 }
 
 string json;
-char* toJson(MasaMessage *m) {
-    //TODO PB use a real lib for JSON
-    json = "{\n";
-    json.append("\t\"cam_idx\" : " + to_string (m->cam_idx) + ",\n");
-    json.append("\t\"t_stamp_ms\" : " + to_string (m->t_stamp_ms) + ",\n");
-    json.append("\t\"num_objects\" : " + to_string (m->num_objects) + "\n");
-    json.append("}");
-    return (char *) json.c_str();
-}
 
 char* WebServer::handleBus(string s) {
     //cout << "handleBus(\"" << s << "\")" << endl;
@@ -106,11 +97,25 @@ char* WebServer::handleBus(string s) {
     MasaMessage *m = _messages[idx];
     if(m->cam_idx > 10000)
       m->cam_idx -= 10000;
-    char *json = toJson(m);
+    
+    //TODO PB use a real lib for JSON
+    auto search = _busSizes.find(m->cam_idx);
+    int capacity = 100;
+    if (search != _busSizes.end())
+        capacity = search -> second;
+    
+    int filling_percentage = m->num_objects * 100 / capacity;
+
+    json = "{\n";
+    json.append("\t\"cam_idx\" : " + to_string (m->cam_idx) + ",\n");
+    json.append("\t\"t_stamp_ms\" : " + to_string (m->t_stamp_ms) + ",\n");
+    json.append("\t\"num_objects\" : " + to_string (m->num_objects) + "\n");
+    json.append("\t\"filling_percentage\" : " + to_string (m->filling_percentage) + "\n");
+    json.append("}");
 
     //delete m;
 
-    return buildResponse(200, json, (char *) "application/json");
+    return buildResponse(200, json.c_str(), (char *) "application/json");
 }
 
 //TODO PB create a real "HttpUtils" class, or use some kind of Http lib
@@ -154,7 +159,7 @@ char* WebServer::doYourWork(char * req, int reqlen) {
         if(strs.size() > 1)
             querystring = strs.at(1);
             
-        pfunc f = funcMap[strs.at(0)];
+        pfunc f = _funcMap[strs.at(0)];
         if(f == NULL) {
             cout << "Handler for endpoint '" << strs.at(0) << "' not found" << endl;
             return buildResponse(404);
