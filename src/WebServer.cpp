@@ -28,7 +28,7 @@ int WebServer::parseQueryString(string querystring) {
     query.clear();
     for(int i=0; i< split.size(); i++) {
         if(split.at(i) != "" && split.at(i) != "%22%22") { //TODO Horrible fix: check Seta.html webpage and JS
-            cout << "[" << i << "] " << split.at(i) << endl;
+            //cout << "[" << i << "] " << split.at(i) << endl;
             boost::split(split2, split.at(i), boost::is_any_of("="));
             string val = "";
             if(split2.size() != 2) {
@@ -103,19 +103,20 @@ char* WebServer::handleBus(string s) {
     int capacity = 100;
     if (search != _busSizes.end())
         capacity = search -> second;
-    
-    int filling_percentage = m->num_objects * 100 / capacity;
+    int fill_percentage = m->num_objects * 100 / capacity;
+
+    //cout << "capacity is " << capacity << " num_objects is " << m->num_objects << " percentage is " << fill_percentage << endl;
 
     json = "{\n";
     json.append("\t\"cam_idx\" : " + to_string (m->cam_idx) + ",\n");
     json.append("\t\"t_stamp_ms\" : " + to_string (m->t_stamp_ms) + ",\n");
-    json.append("\t\"num_objects\" : " + to_string (m->num_objects) + "\n");
-    json.append("\t\"filling_percentage\" : " + to_string (m->filling_percentage) + "\n");
+    json.append("\t\"num_objects\" : " + to_string (m->num_objects) + ",\n");
+    json.append("\t\"fill_percentage\" : " + to_string (fill_percentage) + "\n");
     json.append("}");
 
     //delete m;
 
-    return buildResponse(200, json.c_str(), (char *) "application/json");
+    return buildResponse(200, (char *)json.c_str(), (char *) "application/json");
 }
 
 //TODO PB create a real "HttpUtils" class, or use some kind of Http lib
