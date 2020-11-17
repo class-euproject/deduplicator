@@ -5,10 +5,12 @@ pthread_mutex_t profiler_mutex;
 namespace fog {
 
 void Profiler::tick(std::string timer_name){
+    return;
     timers[timer_name].start = std::chrono::high_resolution_clock::now();
 }
 
 void Profiler::tock(std::string timer_name){
+    return;
     if ( timers.find(timer_name) == timers.end() ) 
         std::cerr<<"Timer never started (no tick associated)\n";
     auto end = std::chrono::high_resolution_clock::now();
@@ -17,6 +19,7 @@ void Profiler::tock(std::string timer_name){
 }
 
 void Profiler::printStats(int interval){
+    return;
     bool print = false;
     for (auto& t : timers)
         if (t.second.diff.size() == interval) {
