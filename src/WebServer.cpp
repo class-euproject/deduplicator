@@ -115,6 +115,7 @@ char* WebServer::handleBus(string s) {
     json.append("}");
 
     //delete m;
+    cout << "[handleBus] Returning " << (char*) json.c_str() << endl << "[handleBus]" << endl;
 
     return buildResponse(200, (char *)json.c_str(), (char *) "application/json");
 }
@@ -180,7 +181,7 @@ void WebServer::OnMessageReceived(MasaMessage *mm) {
     newm->num_objects = mm->num_objects;
 
     //cout << " There are " << _messages.count(mm->cam_idx) << " messages from IDX " << mm->cam_idx << endl;
-    cout << " There are " << mm->num_objects << " people on bus from IDX " << mm->cam_idx << endl;
+    cout << "[OnMessageReceived] There are " << mm->num_objects << " people on bus from IDX " << mm->cam_idx << endl;
 
     // The old message will be destroyed, so create a copy
     if(_messages.count(mm->cam_idx) > 0) {

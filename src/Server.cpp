@@ -65,7 +65,7 @@ void *Server::serverThrdFn(void * ptr) {
 	    //cout << "REQUEST:" << endl << buffer << endl << endl;
 
         char * ret = doYourWork(&buffer[0], n);
-        cout << "RESPONSE:" << endl << ret << endl << endl;
+        //cout << "RESPONSE:" << endl << ret << endl << endl;
 
         n = write(newsockfd, ret, strlen(ret));
         if (n < 0)
