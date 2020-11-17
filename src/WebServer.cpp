@@ -115,7 +115,10 @@ char* WebServer::handleBus(string s) {
     json.append("}");
 
     //delete m;
-    cout << "[handleBus] Returning " << (char*) json.c_str() << endl << "[handleBus]" << endl;
+    cout << "[handleBus] cam_idx:\t" << m->cam_idx << "\t"
+         << "t_stamp_ms:\t" << m->t_stamp_ms << "\t"
+         << "num_objects:\t" << m->num_objects << "\t"
+         << "fill_percentage:\t" << m->fill_percentage << "\t" << endl;
 
     return buildResponse(200, (char *)json.c_str(), (char *) "application/json");
 }
