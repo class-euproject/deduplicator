@@ -118,7 +118,7 @@ char* WebServer::handleBus(string s) {
     cout << "[handleBus] cam_idx:\t" << m->cam_idx << "\t"
          << "t_stamp_ms:\t" << m->t_stamp_ms << "\t"
          << "num_objects:\t" << m->num_objects << "\t"
-         << "fill_percentage:\t" << m->fill_percentage << "\t" << endl;
+         << "fill_percentage:\t" << fill_percentage << "\t" << endl;
 
     return buildResponse(200, (char *)json.c_str(), (char *) "application/json");
 }
