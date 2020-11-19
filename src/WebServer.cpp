@@ -193,6 +193,8 @@ void WebServer::OnMessageReceived(MasaMessage *mm) {
     }
     _messages.insert(std::pair<int, MasaMessage*>(mm->cam_idx, newm));
 
+    delete newm;
+
 }
 
 }
