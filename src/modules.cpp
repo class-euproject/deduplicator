@@ -1,4 +1,5 @@
 #include "Deduplicator.h"
+#include "../include/Deduplicator.h"
 #include <ctime>
 #include <tuple>
 #include <pybind11/pybind11.h>
@@ -23,7 +24,11 @@ Categories category_parse(int class_number) {
     }
 }
 
-std::vector<tracking::Tracker> compute_deduplicator(std::vector<std::vector<tracking::Tracker>> &input_trackers) {
+// std::vector<tracking::Tracker>
+// compute_deduplicator(std::vector<std::vector<tracking::Tracker>> &input_trackers) {
+//std::vector<std::tuple<uint32_t, uint64_t, int, int, float, float, double, double>>
+std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, double, double>>>
+        compute_deduplicator(std::vector<std::vector<tracking::Tracker>> &input_trackers) {
                                                     //, std::vector<uint32_t> cam_ids, std::vector<uint64_t> timestamps) {
     double latitude = 44.655540;
     double longitude = 10.934315;
@@ -45,12 +50,32 @@ std::vector<tracking::Tracker> compute_deduplicator(std::vector<std::vector<trac
         // TODO: message.t_stamp_ms = timestamps[i];
         // TODO: message.cam_idx = cam_ids[i];
         input_messages.push_back(message);
-        //TODO: i++;
+        // TODO: i++;
     }
     MasaMessage return_message;
     deduplicator.computeDeduplication(input_messages, return_message);
-    return deduplicator.t->getTrackers();
-    // TODO: return MasaMessage;
+    // TODO: return return_message; with the cam id and timestamp associated
+    // return deduplicator.t->getTrackers(); // TODO: instead of returning tracker object return just needed info,
+    // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
+    // tracker.predList[-1].yaw (float), tracker.traj[-1].x (float), tracker.traj[-1].y (float) (which can be directly
+    // converted to lat, lon)
+    // std::vector<std::tuple<uint32_t, uint64_t, int, int, float, float, double, double>>
+    std::vector<std::tuple<uint32_t, int, int, float, float, double, double>>
+        info(deduplicator.t->getTrackers().size());
+    int i = 0;
+    double lat, lon, alt;
+    float vel, yaw;
+    for (auto tracker : deduplicator.t->getTrackers()) {
+        vel = yaw = 0.0f;
+        deduplicator.gc.enu2Geodetic(tracker.traj.back().x, tracker.traj.back().y, 0, &lat, &lon, &alt);
+        if (tracker.predList.size() > 0) {
+            vel = tracker.predList.back().vel;
+            yaw = tracker.predList.back().yaw;
+        }
+        // info[i++] = std::make_tuple(return_message.cam_idx, return_message.t_stamp_ms, tracker.id, tracker.cl,
+        info[i++] = std::make_tuple(return_message.cam_idx, tracker.id, tracker.cl, vel, yaw, lat, lon);
+    }
+    return std::make_tuple(return_message.t_stamp_ms, info);
 }
 
 /*

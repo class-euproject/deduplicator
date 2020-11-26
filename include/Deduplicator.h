@@ -24,12 +24,13 @@ private:
     int nStates;
     float dt;
     bool trVerbose;
-    geodetic_converter::GeodeticConverter gc;
+    // geodetic_converter::GeodeticConverter gc;
 
     pthread_t deduplicatorThread;
     bool show;
 public:
 
+    geodetic_converter::GeodeticConverter gc;
     tracking::Tracking *t;
 
     Deduplicator(ClassAggregatorMessage &inputSharedMessage, 
