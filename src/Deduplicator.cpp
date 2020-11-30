@@ -168,8 +168,8 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
             ref.object_index = j;
             ref.distance = 0.0;
             nearest.push_back(ref);
-            for(size_t k = 0; k < i; k++){ //FORSE SERVE: esempio: l'ultimo messaggio sarebbe automaticamente messo tutto se non ci fosse
-                DDstruct nearest_obj;       //mentre potrebbe caitare che ci sia un oggetto che non vada tenuto perchè duplicato di un altro oggetto 
+            for(size_t k = 0; k < i; k++){ //FORSE SERVE: esempio: l'ultimo messaggio sarebbe automaticamente messo tutto se non ci fosse questo ciclo
+                DDstruct nearest_obj;       //mentre potrebbe capitare che ci sia un oggetto che non vada tenuto perchè duplicato di un altro oggetto 
                 nearest_obj.message_index = k;  //trovato in precedenza!
                 if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
                     nearest.push_back(nearest_obj);
@@ -336,10 +336,17 @@ void * Deduplicator::deduplicate(void *n) {
             // filter old messages from the same id (camera or traffic light)
             input_messages = filterOldMessages(input_messages);
             prof.tock("filter old");
-            prof.tick("deduplication");
-            // takes the input messages and return the deduplicate message
-            computeDeduplication(input_messages, deduplicate_message);
-            prof.tock("deduplication");
+            if( !input_messages.empty()){
+                std::cout<< "Sono dentro alla deduplicazione"<<std::endl;
+                prof.tick("deduplication");
+                // takes the input messages and return the deduplicate message
+                computeDeduplication(input_messages, deduplicate_message);
+                prof.tock("deduplication");
+            }
+        }
+
+        if( !input_messages.empty())
+            std::cout<< "cam id: " << input_messages[0].objects[0].camera_id[0] << " tracker id: " << input_messages[0].objects[0].object_id[0] << std::endl;
             prof.tick("show update");
             showUpdates();
             prof.tock("show update");
@@ -350,7 +357,6 @@ void * Deduplicator::deduplicate(void *n) {
             prof.tock("insert message");
             prof.tock("total time");
             prof.printStats();
-        }
     }
     return (void *)NULL;
 }
