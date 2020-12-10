@@ -25,10 +25,11 @@ Categories category_parse(int class_number) {
 }
 
 // std::vector<tracking::Tracker>
-// compute_deduplicator(std::vector<std::vector<tracking::Tracker>> &input_trackers) {
+// compute_deduplicator(std::vector<std::vector<tracking::Tracker>> &input_deduplicator) {
 //std::vector<std::tuple<uint32_t, uint64_t, int, int, float, float, double, double>>
 std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, double, double>>>
-        compute_deduplicator(std::vector<std::vector<tracking::Tracker>> &input_trackers) {
+        compute_deduplicator(std::vector<std::vector<std::tuple<float, float, int, uint8_t, uint8_t>>>
+                &input_deduplicator) {
                                                     //, std::vector<uint32_t> cam_ids, std::vector<uint64_t> timestamps) {
     double latitude = 44.655540;
     double longitude = 10.934315;
@@ -43,18 +44,26 @@ std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, do
     std::vector<MasaMessage> input_messages;
     // TODO: check if correct below
     // TODO: int i = 0;
-    for (std::vector<tracking::Tracker> &tracker_list : input_trackers) {
+    for (auto vec_info : input_deduplicator) {
         MasaMessage message;
-        deduplicator.create_message_from_tracker(tracker_list, &message);
-        // TODO: check if correct
-        // TODO: message.t_stamp_ms = timestamps[i];
-        // TODO: message.cam_idx = cam_ids[i];
+        for (auto info : vec_info) {
+            // deduplicator.create_message_from_tracker(tracker_list, &message);
+            // info is a tuple of <lat (float), lon (float), category (int), velocity (uint8_t), yaw (uint8_t)>
+            // RoadUser receives as params: <lat, lon, vel, yaw, cat>
+            RoadUser r{static_cast<float>(std::get<0>(info)), static_cast<float>(std::get<1>(info)),
+                       static_cast<uint8_t>(std::get<3>(info)), std::get<4>(info),
+                       static_cast<Categories>(std::get<2>(info))};
+
+            // TODO: check if correct
+            // TODO: message.t_stamp_ms = timestamps[i];
+            // TODO: message.cam_idx = cam_ids[i];
+            message.objects.push_back(r);
+        }
         input_messages.push_back(message);
         // TODO: i++;
     }
     MasaMessage return_message;
     deduplicator.computeDeduplication(input_messages, return_message);
-    // TODO: return return_message; with the cam id and timestamp associated
     // return deduplicator.t->getTrackers(); // TODO: instead of returning tracker object return just needed info,
     // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
     // tracker.predList[-1].yaw (float), tracker.traj[-1].x (float), tracker.traj[-1].y (float) (which can be directly
