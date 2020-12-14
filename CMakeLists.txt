@@ -62,6 +62,7 @@ file(GLOB classAggregator_SRC "src/*.cpp")
 set(classAggregator_LIBS  ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} yaml-cpp gdal tkCommon class-tracker)
 add_library(classAggregator SHARED ${classAggregator_SRC})
 target_link_libraries(classAggregator ${classAggregator_LIBS})
+target_link_libraries(classAggregator ${CMAKE_CURRENT_SOURCE_DIR}/geohash-int-master/geohash.o)
 
 
 #-------------------------------------------------------------------------------
