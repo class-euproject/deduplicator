@@ -1,4 +1,5 @@
 #include "Deduplicator.h"
+#include "geohash.h"
 
 namespace fog {
 
@@ -137,98 +138,159 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     const float CAR_THRESHOLD = 1.5;  //multiple deduplication threshold for different road users
     const float PERSON_THRESHOLD = 0.5;
 
-    std::vector<DDstruct> to_keep;
-    std::vector<MasaMessage> deduplicated_messages;
-    deduplicated_messages.resize(input_messages.size());
+    for(size_t i = 0; i < input_messages.size(); i++){
+
+        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
+            /*since this loop look for nearest objects in all other messages, we can assume that if an object have multiple ids in cam_id 
+            (or object_id, it's the same) it's a duplicated from another object already processed. Therefore we can just skip it.*/
+            if(input_messages.at(i).objects.at(j).camera_id.size() == 1){
+                //set the appropriate threshold knowing the category of the object
+                float threshold;
+                switch (input_messages.at(i).objects.at(j).category)
+                {
+                case Categories::C_person:
+                    threshold = PERSON_THRESHOLD;
+                    break;
+                case Categories::C_car:
+                    threshold = CAR_THRESHOLD;
+                    break;
+                default:
+                    threshold = CAR_THRESHOLD;
+                    break;
+                }
+
+                //find the nearest object in each message
+                std::vector<DDstruct> nearest;
+                DDstruct ref;
+                ref.rs = input_messages.at(i).objects.at(j);
+                ref.message_index = i;
+                ref.object_index = j;
+                ref.distance = 0.0;
+                nearest.push_back(ref);
+                for(size_t k = 0; k < i; k++){ 
+                    DDstruct nearest_obj;
+                    nearest_obj.message_index = k;
+                    if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
+                        nearest.push_back(nearest_obj);
+                    }
+                }
+
+                for(size_t k = i+1; k < input_messages.size(); k++){
+                    DDstruct nearest_obj;
+                    nearest_obj.message_index = k;
+                    if (this->nearest_of(input_messages.at(i), ref, threshold, nearest_obj) == true){
+                        nearest.push_back(nearest_obj);
+                    }
+                }
+
+                //if other objects near the reference are found 
+                if(nearest.size() != 1){
+
+                    //update the objects info about cam_id and object_id in input_messages.
+                    for(size_t x = 0; x < nearest.size(); x++){
+
+                        int cam_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(0);
+                        int object_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(0);
+                        for(size_t y = 0; y < x; y++){
+                            input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
+                            input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
+                        }
+
+                        for(size_t y = x+1; y < nearest.size(); y++){
+                            input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
+                            input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void geohashDeduplication(std::vector<MasaMessage> input_messages){
+
+    //resolution of geohash is the number of bit of the integer geohash. 52 bits corresponds to a precision of 0.5971 m
+    //while 50 bits to 1.1943m
+    const int CAR_RESOLUTION = 50;  
+    const int PERSON_RESOLUTION = 52;
+
+    //Maybe changing this values we can improve performances if needed
+    GeoHashRange lat_range, lon_range;
+    lat_range.max = 20037726.37;
+    lat_range.min = -20037726.37;
+    lon_range.max = 20037726.37;
+    lon_range.min = -20037726.37;
+
+    std::map<uint64_t, std::vector<RoadUser>> car_map;
+    std::map<uint64_t, std::vector<RoadUser>> person_map;
 
     for(size_t i = 0; i < input_messages.size(); i++){
 
-        for(auto elem : input_messages.at(i).lights)
-            deduplicated_messages.at(i).lights.push_back(elem);
-
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-            float threshold;
-            switch (input_messages.at(i).objects.at(j).category)
+
+            RoadUser object = input_messages.at(i).objects.at(j);
+            GeoHashBits hash;
+            std::vector<RoadUser> to_update;
+            switch (object.category)
             {
             case Categories::C_person:
-                threshold = PERSON_THRESHOLD;
+                geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, PERSON_RESOLUTION, &hash);
+                person_map[hash.bits].push_back(object);
+                to_update =  person_map[hash.bits];
                 break;
             case Categories::C_car:
-                threshold = CAR_THRESHOLD;
+                geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash);
+                car_map[hash.bits].push_back(object);
+                to_update =  car_map[hash.bits];
                 break;
             default:
-                threshold = CAR_THRESHOLD;
+                geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash);
+                car_map[hash.bits].push_back(object);
+                to_update =  car_map[hash.bits];
                 break;
             }
+        
+            //if multiple objects have the same hash update the corresponding objects
+            if(to_update.size() > 1){
+                for(size_t x = 0; x < to_update.size(); x++){
 
-            std::vector<DDstruct> nearest;
-            DDstruct ref;
-            ref.rs = input_messages.at(i).objects.at(j);
-            ref.message_index = i;
-            ref.object_index = j;
-            ref.distance = 0.0;
-            nearest.push_back(ref);
-            for(size_t k = 0; k < i; k++){ //FORSE SERVE: esempio: l'ultimo messaggio sarebbe automaticamente messo tutto se non ci fosse questo ciclo
-                DDstruct nearest_obj;       //mentre potrebbe capitare che ci sia un oggetto che non vada tenuto perchè duplicato di un altro oggetto 
-                nearest_obj.message_index = k;  //trovato in precedenza!
-                if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
-                    nearest.push_back(nearest_obj);
-                }
-            }
+                    //controlla se modificare i dati dentro la hash map li modifica anche in input messages
+                    for(size_t y = 0; y < to_update.size()-1; y++){
 
-            for(size_t k = i+1; k < input_messages.size(); k++){
-                DDstruct nearest_obj;
-                nearest_obj.message_index = k;
-                if (this->nearest_of(input_messages.at(i), ref, threshold, nearest_obj) == true){
-                    nearest.push_back(nearest_obj);
-                }
-            }
+                        object.camera_id.push_back(to_update.at(y).camera_id[0]);
+                        object.object_id.push_back(to_update.at(y).object_id[0]);
 
-            if(nearest.size() == 1){
-                //then first the inital object (i, j) have no neighboors. Just keep it.
-                to_keep.push_back(nearest.at(0));
-            } else {
-                //near objects found. Keep the most precise (which has less precision) if it's not already in.
-                std::sort(nearest.begin(), nearest.end(), [](const DDstruct & a, const DDstruct & b) -> bool
-                { 
-                    return a.rs.precision < b.rs.precision; 
-                } );
-                
-                if(std::find(to_keep.begin(), to_keep.end(), nearest.at(0)) == to_keep.end()){
-                    to_keep.push_back(nearest.at(0));
-                    
-                    //activate this to switch the duplications into pedestrians. comment also 214-218 and 225-226
-                    /*for(size_t i = 0; i < nearest.size(); i++){
-
-                        input_messages.at(nearest.at(i).message_index).objects.at(nearest.at(i).object_index).category = Categories::C_person;
-                    }*/
+                        to_update.at(y).camera_id.push_back(object.camera_id[0]);
+                        to_update.at(y).object_id.push_back(object.object_id[0]);
+                    }
                 }
             }
         }
     }
 
-    //finally, finish to create the output vector of MasaMessages and assign it to input_messages in order to return it
-    for(size_t i = 0; i < to_keep.size(); i++){
-        DDstruct tmp = to_keep.at(i);
-        deduplicated_messages.at(tmp.message_index).objects.push_back(tmp.rs);
-        deduplicated_messages.at(tmp.message_index).num_objects = deduplicated_messages.at(tmp.message_index).objects.size();
-    }
 
-    /*int prev_size = 0;
-    for(auto message : input_messages){
-        prev_size +=  message.objects.size();
-    }*/
 
-    input_messages.clear();
-    input_messages = deduplicated_messages;
+ /*              //if other objects near the reference are found 
+            if(nearest.size() != 1){
 
-    /*int later_size = 0;
-    for(auto message : input_messages){
-        later_size +=  message.objects.size();
-    }
-    std::cout << "Number of deduplicated objects: " << prev_size - later_size << std::endl;*/
+                //update the objects info about cam_id and object_id in input_messages.
+                for(size_t x = 0; x < nearest.size(); x++){
+
+                    int cam_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(0);
+                    int object_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(0);
+                    for(size_t y = 0; y < x; y++){
+                        input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
+                        input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(yobject_index).object_id.push_back(object_id);
+                    }
+
+                    for(size_t y = x+1; y < nearest.size(); y++){
+                        input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
+                        input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
+                    }
+                }
+            }*/
+
 }
-
 /**
  * Compute the deduplication:
  * - for the road users it uses the tracker. The tracker deletes a point if two different points 
@@ -244,7 +306,10 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     deduplicate_message.objects.clear();
     deduplicate_message.t_stamp_ms = time_in_ms();
 
+    //Old deduplication method
     //deduplicationFromMessages(input_messages);
+    //New deduplication method with geohash
+    geohashDeduplication(input_messages);
 
     for(auto m : input_messages) {
         for(size_t i = 0; i < m.objects.size(); i++) {
@@ -270,8 +335,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
 
     deduplicate_message.num_objects = deduplicate_message.objects.size();
-
-    	
+    
 }
 
 /**
@@ -346,7 +410,7 @@ void * Deduplicator::deduplicate(void *n) {
         }
 
         if( !input_messages.empty())
-            std::cout<< "cam id: " << input_messages[0].objects[0].camera_id[0] << " tracker id: " << input_messages[0].objects[0].object_id[0] << std::endl;
+            
             prof.tick("show update");
             showUpdates();
             prof.tock("show update");

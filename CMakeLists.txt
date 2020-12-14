@@ -54,7 +54,8 @@ add_subdirectory(class-tracker)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
+                    ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/geohash-int-master)
 include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${CUDNN_INCLUDE_DIRS})
 
 file(GLOB classAggregator_SRC "src/*.cpp")
