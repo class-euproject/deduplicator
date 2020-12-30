@@ -321,8 +321,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     //New deduplication method with geohash
     //geohashDeduplication(input_messages);
 
-    //TRACKER PART
-    /*for(auto m : input_messages) {
+    for(auto m : input_messages) {
         for(size_t i = 0; i < m.objects.size(); i++) {
             // skip some special road user 
             if(m.objects.at(i).category == C_marelli1 || 
@@ -345,10 +344,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
 
     create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
 
-    deduplicate_message.num_objects = deduplicate_message.objects.size();*/
-
-    deduplicate_message = input_messages;
-
+    deduplicate_message.num_objects = deduplicate_message.objects.size();
     
 }
 
