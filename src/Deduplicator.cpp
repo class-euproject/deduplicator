@@ -184,6 +184,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                     }
                 }
 
+                std::cout << "Ho finito di guardare tutti i messaggi cercando i nearest. Ne ho trovati: " << nearest.size() << std::endl;
                 //if other objects near the reference are found 
                 if(nearest.size() != 1){
 
@@ -318,7 +319,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     deduplicate_message.t_stamp_ms = time_in_ms();
 
     //Old deduplication method
-    //deduplicationFromMessages(input_messages);
+    deduplicationFromMessages(input_messages);
     //New deduplication method with geohash
     //geohashDeduplication(input_messages);
 
