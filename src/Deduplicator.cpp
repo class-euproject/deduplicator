@@ -108,7 +108,7 @@ float Deduplicator::distance(const RoadUser object1, const RoadUser object2) {
  * to the reference, with the same category in the given MasaMessage, if any.
  * 
 */
-bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, const float threshold, DDstruct & ris){
+bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, const float threshold, DDstruct& ris){
     DDstruct nearest;
     bool empty = true;
     for(size_t i = 0; i < message.objects.size(); i++){
@@ -171,7 +171,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                 for(size_t k = 0; k < i; k++){ 
                     DDstruct nearest_obj;
                     nearest_obj.message_index = k;
-                    if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
+                    if (this->nearest_of(input_messages.at(k), ref, threshold, &nearest_obj) == true){
                         nearest.push_back(nearest_obj);
                     }
                 }
@@ -179,7 +179,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                 for(size_t k = i+1; k < input_messages.size(); k++){
                     DDstruct nearest_obj;
                     nearest_obj.message_index = k;
-                    if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
+                    if (this->nearest_of(input_messages.at(k), ref, threshold, &nearest_obj) == true){
                         nearest.push_back(nearest_obj);
                     }
                 }
