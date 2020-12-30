@@ -121,7 +121,7 @@ bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, con
                     nearest.distance = distance;
                     nearest.object_index = i;
                     ris = nearest;
-                    empty = false;
+                    found_something = true;
                 } 
             }
         }
