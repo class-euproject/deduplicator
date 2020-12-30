@@ -316,14 +316,13 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     deduplicate_message.objects.clear();
     deduplicate_message.t_stamp_ms = time_in_ms();
 
-    prof.tick("deduplication");
     //Old deduplication method
     deduplicationFromMessages(input_messages);
     //New deduplication method with geohash
     //geohashDeduplication(input_messages);
-    prof.tock("deduplication");
 
-    for(auto m : input_messages) {
+    //TRACKER PART
+    /*for(auto m : input_messages) {
         for(size_t i = 0; i < m.objects.size(); i++) {
             // skip some special road user 
             if(m.objects.at(i).category == C_marelli1 || 
@@ -346,7 +345,10 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
 
     create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
 
-    deduplicate_message.num_objects = deduplicate_message.objects.size();
+    deduplicate_message.num_objects = deduplicate_message.objects.size();*/
+
+    deduplicate_message = input_messages;
+
     
 }
 
@@ -413,10 +415,10 @@ void * Deduplicator::deduplicate(void *n) {
             input_messages = filterOldMessages(input_messages);
             prof.tock("filter old");
             if( !input_messages.empty()){
-                
+                prof.tick("deduplication");
                 // takes the input messages and return the deduplicate message
                 computeDeduplication(input_messages, deduplicate_message);
-                
+                prof.tock("deduplication");
             }
         }
 
