@@ -141,7 +141,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     for(size_t i = 0; i < input_messages.size(); i++){
 
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-            std::cout << "i: " << i << " input message size: " << input_messages.size() << " j: " << j << " message.objects size: " << input_messages.at(i).objects.size() << std::endl;
+            std::cout << "message (i) " << i << "-->" << input_messages.at(i).cam_idx << "over " << input_messages.size() << " (input message size). Object (j) " << j << " over " << input_messages.at(i).objects.size() << " (message.objects size)" << std::endl;
             /*since this loop look for nearest objects in all other messages, we can assume that if an object have multiple ids in cam_id 
             (or object_id, it's the same) it's a duplicated from another object already processed. Therefore we can just skip it.*/
             if(input_messages.at(i).objects.at(j).camera_id.size() == 1){
