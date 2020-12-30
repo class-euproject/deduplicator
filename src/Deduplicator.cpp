@@ -177,7 +177,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                     }
                 }
 
-                k = i+1
+                k = i+1;
                 for(; k < input_messages.size(); k++){
                     DDstruct nearest_obj;
                     nearest_obj.message_index = k;
