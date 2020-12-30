@@ -192,8 +192,6 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 
                         int cam_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(0);
                         int object_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(0);
-
-                        std::cout << "cam_id: " << cam_id << " object_id " << object_id << std::endl;
  
                         for(size_t y = 0; y < x; y++){
                             input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
