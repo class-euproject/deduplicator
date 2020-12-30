@@ -141,11 +141,11 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     for(size_t i = 0; i < input_messages.size(); i++){
 
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-            std::cout << "message (i) " << i << "-->" << input_messages.at(i).cam_idx << "over " << input_messages.size() << " (input message size). Object (j) " << j << " over " << input_messages.at(i).objects.size() << " (message.objects size)" << std::endl;
+            std::cout << "message (i) " << i << "-->" << input_messages.at(i).cam_idx << " over " << input_messages.size() << " (input message size). Object (j) " << j << " over " << input_messages.at(i).objects.size() << " (message.objects size)" << std::endl;
             /*since this loop look for nearest objects in all other messages, we can assume that if an object have multiple ids in cam_id 
             (or object_id, it's the same) it's a duplicated from another object already processed. Therefore we can just skip it.*/
             if(input_messages.at(i).objects.at(j).camera_id.size() == 1){
-                //set the appropriate threshold knowing the category of the object
+                //set the appropriate threshold geven the category of the object
                 float threshold;
                 switch (input_messages.at(i).objects.at(j).category)
                 {
@@ -179,7 +179,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                 for(size_t k = i+1; k < input_messages.size(); k++){
                     DDstruct nearest_obj;
                     nearest_obj.message_index = k;
-                    if (this->nearest_of(input_messages.at(i), ref, threshold, nearest_obj) == true){
+                    if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
                         nearest.push_back(nearest_obj);
                     }
                 }
