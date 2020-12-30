@@ -318,7 +318,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     deduplicate_message.t_stamp_ms = time_in_ms();
 
     //Old deduplication method
-    deduplicationFromMessages(input_messages);
+    //deduplicationFromMessages(input_messages);
     //New deduplication method with geohash
     //geohashDeduplication(input_messages);
 
