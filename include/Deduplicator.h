@@ -21,8 +21,8 @@ typedef void * (*THREADFUNCPTR)(void *);
 struct DDstruct{
     RoadUser rs;
     float distance;
-    int message_index;
-    int object_index;
+    size_t message_index;
+    size_t object_index;
 };
 
 bool operator==( DDstruct const& lhs, DDstruct const& rhs) { return lhs.rs.latitude == rhs.rs.longitude and lhs.rs.precision == rhs.rs.precision and 
