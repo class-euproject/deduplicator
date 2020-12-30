@@ -170,18 +170,18 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                 nearest.push_back(ref);
                 size_t k = 0;
                 for(; k < i; k++){ 
-                    DDstruct nearest_obj;
-                    nearest_obj.message_index = k;
                     if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
+                        DDstruct nearest_obj;
+                        nearest_obj.message_index = k;
                         nearest.push_back(nearest_obj);
                     }
                 }
 
                 k = i+1;
                 for(; k < input_messages.size(); k++){
-                    DDstruct nearest_obj;
-                    nearest_obj.message_index = k;
                     if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
+                        DDstruct nearest_obj;
+                        nearest_obj.message_index = k;
                         nearest.push_back(nearest_obj);
                     }
                 }
