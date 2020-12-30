@@ -104,8 +104,8 @@ long double Deduplicator::distance(const RoadUser object1, const RoadUser object
 }
 
 /**
- * Compute the nearest object under a certain threshold (having the same category of) 
- * to the reference in the given MasaMessage, id any.
+ * Compute the nearest object under a certain threshold 
+ * to the reference, with the same category in the given MasaMessage, if any.
  * 
 */
 bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, const float threshold, DDstruct & ris){
@@ -205,7 +205,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 
                     //Uncomment this to print some results:
                     std::cout << "Object at " << j << " from camera " << input_messages.at(i).cam_idx << " is also in ";
-                    for(int k = 0; k < input_messages.at(i).objects.at(j).camera_id.size(); k++){
+                    for(size_t k = 0; k < input_messages.at(i).objects.at(j).camera_id.size(); k++){
 
                         std::cout<< input_messages.at(i).objects.at(j).camera_id.at(k)<< " ";
                     }
