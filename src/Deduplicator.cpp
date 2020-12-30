@@ -201,10 +201,20 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                             input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
                         }
                     }
+
+                    //Uncomment this to print some results:
+                    std::cout << "Object at " << j << " from camera " << input.messages.at(i).cam_idx << " is also in ";
+                    for(int k = 0; k < input_messages.at(i).objects.at(j).camera_id.size(); k++){
+
+                        std::cout<< input_messages.at(i).objects.at(j).camera_id.at(k)<< " ";
+                    }
+                    std::cout<<std::endl;
                 }
             }
         }
     }
+
+
 }
 
 void geohashDeduplication(std::vector<MasaMessage> input_messages){
@@ -399,10 +409,6 @@ void * Deduplicator::deduplicate(void *n) {
             prof.tick("filter old");
             // filter old messages from the same id (camera or traffic light)
             input_messages = filterOldMessages(input_messages);
-            for(int i = 0; i < input_messages.size(); i++){
-                std::cout<< input_messages.at(i).cam_idx<< " ";
-            }
-            std::cout<<std::endl;
             prof.tock("filter old");
             if( !input_messages.empty()){
                 prof.tick("deduplication");
