@@ -188,6 +188,11 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                 //if other objects near the reference are found 
                 if(nearest.size() != 1){
 
+                    for(size_t x = 0; x < nearest.size(); x++){
+                    
+                        std::cout<< nearest.at(x).message_index << " " << nearest.at(x).object_index << " " << nearest.at(x).distance << std::endl;
+                    }
+
                     //update the objects info about cam_id and object_id in input_messages.
                     for(size_t x = 0; x < nearest.size(); x++){
 
