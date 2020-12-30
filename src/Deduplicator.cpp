@@ -398,10 +398,13 @@ void * Deduplicator::deduplicate(void *n) {
             // std::cout<<"get messages\n";
             prof.tick("filter old");
             // filter old messages from the same id (camera or traffic light)
+            for(int i = 0; i < input_messages.size(); i++){
+                std::cout<< input_messages.at(i).cam_idx<< " ";
+            }
+            std::cout<<std::endl;
             input_messages = filterOldMessages(input_messages);
             prof.tock("filter old");
             if( !input_messages.empty()){
-                std::cout<< "Sono dentro alla deduplicazione"<<std::endl;
                 prof.tick("deduplication");
                 // takes the input messages and return the deduplicate message
                 computeDeduplication(input_messages, deduplicate_message);
