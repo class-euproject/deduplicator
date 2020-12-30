@@ -45,7 +45,7 @@ private:
     AggregatorViewer *viewer;
     bool show;
     
-    long double distance(const RoadUser object1, const RoadUser object2);
+    float distance(const RoadUser object1, const RoadUser object2);
     bool nearest_of(const MasaMessage message, const DDstruct ref, const float threshold, DDstruct & ris);
     void deduplicationFromMessages(std::vector<MasaMessage> &input_messages);
 public:

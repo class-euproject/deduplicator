@@ -95,12 +95,12 @@ std::vector<MasaMessage> Deduplicator::filterOldMessages(std::vector<MasaMessage
 /**
  * Compute euclidian distance 
 */
-long double Deduplicator::distance(const RoadUser object1, const RoadUser object2) {
+float Deduplicator::distance(const RoadUser object1, const RoadUser object2) {
     double north1, north2, east1, east2, up;
 
     this->gc.geodetic2Enu(object1.latitude, object1.longitude, 0, &north1, &east1, &up);
     this->gc.geodetic2Enu(object2.latitude, object2.longitude, 0, &north2, &east2, &up);
-    return sqrt(pow(abs(north1 - north2), 2) + pow(abs(east1 - east2), 2));
+    return sqrt(pow(north1 - north2, 2) + pow(east1 - east2, 2));
 }
 
 /**
