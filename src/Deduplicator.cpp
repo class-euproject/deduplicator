@@ -205,12 +205,12 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                     }
 
                     //Uncomment this to print some results:
-                    std::cout << "Object at " << j << " from camera " << input_messages.at(i).cam_idx << " is also in ";
+                    /*std::cout << "Object at " << j << " from camera " << input_messages.at(i).cam_idx << " is also in ";
                     for(size_t k = 0; k < input_messages.at(i).objects.at(j).camera_id.size(); k++){
 
                         std::cout<< input_messages.at(i).objects.at(j).camera_id.at(k)<< " ";
                     }
-                    std::cout<<std::endl;
+                    std::cout<<std::endl;*/
                 }
             }
         }
