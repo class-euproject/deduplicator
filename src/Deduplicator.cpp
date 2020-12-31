@@ -301,12 +301,12 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
             neighbors.push_back(car_map[neighbors_keys->south_west.bits]);
 
             if(neighbors.size() != 1){
-                for(size_t x = 0; x < neighbors.size(); x++){
+                for(size_t i = 0; i < neighbors.size(); i++){
                     int cam_id = neighbors.at(i).camera_id.at(0);
                     int tracker_id = neighbors.at(i).object_id.at(0);
-                    for(size_t y = 0; y < neighbors.size(); y++){
+                    for(size_t j = 0; j < neighbors.size(); j++){
                         //std::cout << "Geohash ha trovato dei duplicati" << std::endl;
-                        if(y != x){
+                        if(i != j){
                             neighbors.at(j).camera_id.push_back(cam_id);
                             neighbors.at(j).object_id.push_back(tracker_id);
                         }
