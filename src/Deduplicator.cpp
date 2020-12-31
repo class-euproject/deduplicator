@@ -243,14 +243,12 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
 
             RoadUser object = input_messages.at(i).objects.at(j);
             GeoHashBits hash;
-            std::vector<RoadUser> to_update;
             switch (object.category)
             {
             case Categories::C_person:
                 if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, PERSON_RESOLUTION, &hash) == 0){
 
                     person_map[hash.bits].push_back(object);
-                    to_update =  person_map[hash.bits];
                     //if it works we can optimize this operation using sets and overriding the required operators
                     if (std::find(person_keys.begin(), person_keys.end(), hash.bits) == person_keys.end()) 
                         person_keys.push_back(hash.bits);
@@ -264,7 +262,6 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
                 if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash) == 0){
 
                     car_map[hash.bits].push_back(object);
-                    to_update =  car_map[hash.bits];
                     if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
                         car_keys.push_back(hash.bits);
                 } else {
@@ -276,7 +273,6 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
                 if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash) == 0){
 
                     car_map[hash.bits].push_back(object);
-                    to_update =  car_map[hash.bits];
                     if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
                         car_keys.push_back(hash.bits);
                 } else {
@@ -284,72 +280,44 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
                 }
                 break;
             }
-        
-            //if multiple objects have the same hash update the corresponding objects
-            if(to_update.size() > 1){
-                for(size_t x = 0; x < to_update.size(); x++){
-
-                    //controlla se modificare i dati dentro la hash map li modifica anche in input messages-> NO
-                    for(size_t y = 0; y < to_update.size()-1; y++){
-                        //std::cout << "Geohash ha trovato dei duplicati" << std::endl;
-
-                        input_messages.at(i).objects.at(j).camera_id.push_back(to_update.at(y).camera_id[0]);
-                        input_messages.at(i).objects.at(j).object_id.push_back(to_update.at(y).object_id[0]);
-
-                        to_update.at(y).camera_id.push_back(input_messages.at(i).objects.at(j).camera_id[0]);
-                        to_update.at(y).object_id.push_back(input_messages.at(i).objects.at(j).object_id[0]);
-                    }
-                }
-            }
         }
     }
 
     //now check the neighborhood of the objects
-    /*std::map<uint64_t, std::vector<RoadUser>> neighbors;
     for(auto key: car_keys){
 
-        GeoHashNeighbors* neighbors;
-        if( geohash_get_neighbors(key, neighbors) == 0 ){
+        GeoHashNeighbors* neighbors_keys;
+        if( geohash_get_neighbors(key, neighbors_keys) == 0 ){
             
-            neighbors->north.bits
-            neighbors->east.bits
-            neighbors->west.bits
-            neighbors->south.bits
-            neighbors->north_east.bits
-            neighbors->south_east.bits
-            neighbors->north_west.bits
-            neighbors->south_west.bits
+            std::vector<RoadUser> neighbors = car_map[key.bits];
 
+            neighbors.push_back(car_map[neighbors->north.bits]);
+            neighbors.push_back(car_map[neighbors->east.bits);
+            neighbors.push_back(car_map[neighbors->west.bits]);
+            neighbors.push_back(car_map[neighbors->south.bits]);
+            neighbors.push_back(car_map[neighbors->north_east.bits]);
+            neighbors.push_back(car_map[neighbors->south_east.bits]);
+            neighbors.push_back(car_map[neighbors->north_west.bits]);
+            neighbors.push_back(car_map[neighbors->south_west.bits]);
+
+            if(neighbors.size() != 1){
+                for(size_t x = 0; x < neighbors.size(); x++){
+                    int cam_id = neighbors.at(i).camera_id.at(0);
+                    int tracker_id = neighbors.at(i).object_id.at(0);
+                    for(size_t y = 0; y < neighbors.size(); y++){
+                        //std::cout << "Geohash ha trovato dei duplicati" << std::endl;
+                        if(y != x){
+                            neighbors.at(j).camera_id.push_back(cam_id);
+                            neighbors.at(j).object_id.push_back(tracker_id);
+                        }
+                    }
+                }
+
+            }
         } else {
             std::cerr<< "Could not compute neighbors" << std::endl;
         }
-        
-
-    }*/
-
-
-
-
- /*              //if other objects near the reference are found 
-            if(nearest.size() != 1){
-
-                //update the objects info about cam_id and object_id in input_messages.
-                for(size_t x = 0; x < nearest.size(); x++){
-
-                    int cam_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(0);
-                    int object_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(0);
-                    for(size_t y = 0; y < x; y++){
-                        input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
-                        input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(yobject_index).object_id.push_back(object_id);
-                    }
-
-                    for(size_t y = x+1; y < nearest.size(); y++){
-                        input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
-                        input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
-                    }
-                }
-            }*/
-
+    }
 }
 /**
  * Compute the deduplication:
