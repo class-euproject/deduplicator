@@ -222,8 +222,8 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
     //resolution of geohash is the number of bit of the integer geohash. 52 bits corresponds to a precision of 0.5971 m
     //while 50 bits to 1.1943m. The "resolution" is half of those values because it is the number of steps the convertion function
     //takes to do the conversion. Each step defines 2 bit. Ref at https://github.com/yinqiwen/ardb/wiki/Spatial-Index
-    const int CAR_RESOLUTION = 10;  
-    const int PERSON_RESOLUTION = 9;
+    const int CAR_RESOLUTION = 25;  
+    const int PERSON_RESOLUTION = 26;
 
     //Maybe changing this values we can improve performances/precision if needed
     GeoHashRange lat_range, lon_range;
@@ -268,7 +268,7 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
                     if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
                         car_keys.push_back(hash.bits);
                 } else {
-                    std::cerr<< "Geohash conversion of person failed"<< std::endl;
+                    std::cerr<< "Geohash conversion of car failed"<< std::endl;
                 }
                 break;
 
