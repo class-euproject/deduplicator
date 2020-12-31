@@ -227,10 +227,10 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
 
     //Maybe changing this values we can improve performances/precision if needed
     GeoHashRange lat_range, lon_range;
-    lat_range.max = 20037726.37;
-    lat_range.min = -20037726.37;
-    lon_range.max = 20037726.37;
-    lon_range.min = -20037726.37;
+    lat_range.max = 45.0;
+    lat_range.min = 44.0;
+    lon_range.max = 10.0;
+    lon_range.min = 11.0;
 
     std::map<uint64_t, std::vector<RoadUser>> car_map;
     std::vector<uint64_t> car_keys;
