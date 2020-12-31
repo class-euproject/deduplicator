@@ -241,15 +241,15 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
 
-            RoadUser* object = &(input_messages.at(i).objects.at(j));
+            RoadUser object = input_messages.at(i).objects.at(j);
             GeoHashBits hash;
             std::vector<RoadUser> to_update;
-            switch (object->category)
+            switch (object.category)
             {
             case Categories::C_person:
-                if( geohash_fast_encode(lat_range, lon_range, object->latitude, object->longitude, PERSON_RESOLUTION, &hash) == 0){
+                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, PERSON_RESOLUTION, &hash) == 0){
 
-                    person_map[hash.bits].push_back(*object);
+                    person_map[hash.bits].push_back(object);
                     to_update =  person_map[hash.bits];
                     //if it works we can optimize this operation using sets and overriding the required operators
                     if (std::find(person_keys.begin(), person_keys.end(), hash.bits) == person_keys.end()) 
@@ -261,9 +261,9 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
                 break;
 
             case Categories::C_car:
-                if( geohash_fast_encode(lat_range, lon_range, object->latitude, object->longitude, CAR_RESOLUTION, &hash) == 0){
+                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash) == 0){
 
-                    car_map[hash.bits].push_back(*object);
+                    car_map[hash.bits].push_back(object);
                     to_update =  car_map[hash.bits];
                     if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
                         car_keys.push_back(hash.bits);
@@ -273,9 +273,9 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
                 break;
 
             default:
-                if( geohash_fast_encode(lat_range, lon_range, object->latitude, object->longitude, CAR_RESOLUTION, &hash) == 0){
+                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash) == 0){
 
-                    car_map[hash.bits].push_back(*object);
+                    car_map[hash.bits].push_back(object);
                     to_update =  car_map[hash.bits];
                     if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
                         car_keys.push_back(hash.bits);
@@ -293,11 +293,11 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
                     for(size_t y = 0; y < to_update.size()-1; y++){
                         //std::cout << "Geohash ha trovato dei duplicati" << std::endl;
 
-                        object->camera_id.push_back(to_update.at(y).camera_id[0]);
-                        object->object_id.push_back(to_update.at(y).object_id[0]);
+                        input_messages.at(i).objects.at(j).camera_id.push_back(to_update.at(y).camera_id[0]);
+                        input_messages.at(i).objects.at(j).object_id.push_back(to_update.at(y).object_id[0]);
 
-                        to_update.at(y).camera_id.push_back(object->camera_id[0]);
-                        to_update.at(y).object_id.push_back(object->object_id[0]);
+                        to_update.at(y).camera_id.push_back(input_messages.at(i).objects.at(j).camera_id[0]);
+                        to_update.at(y).object_id.push_back(input_messages.at(i).objects.at(j).object_id[0]);
                     }
                 }
             }
@@ -381,7 +381,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
             }
         }
     }
-    std::cout << "Oggetti deduplicati in input messages: " << deduplicated_objects << std::endl;
+    std::cout << "Oggetti deduplicati da deduplicationFromMessages: " << deduplicated_objects << std::endl;
 
     deduplicated_objects = 0;
     for(size_t i = 0; i < copy_input_messages.size(); i++){
@@ -391,7 +391,7 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
             }
         }
     }
-    std::cout << "Oggetti deduplicati in copy input messages: " << deduplicated_objects << std::endl << std::endl;
+    std::cout << "Oggetti deduplicati da geohashDeduplication: " << deduplicated_objects << std::endl << std::endl;
 
     for(auto m : input_messages) {
         for(size_t i = 0; i < m.objects.size(); i++) {
