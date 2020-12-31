@@ -1,5 +1,6 @@
 #include "Deduplicator.h"
 #include "geohash.h"
+#include <unordered_set>
 
 namespace fog {
 
@@ -232,7 +233,9 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
     lon_range.min = -20037726.37;
 
     std::map<uint64_t, std::vector<RoadUser>> car_map;
+    std::unordered_set<uint64_t> car_keys;
     std::map<uint64_t, std::vector<RoadUser>> person_map;
+    std::unordered_set<uint64_t> person_keys;
 
     for(size_t i = 0; i < input_messages.size(); i++){
 
@@ -247,6 +250,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
                 geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, PERSON_RESOLUTION, &hash);
                 person_map[hash.bits].push_back(object);
                 to_update =  person_map[hash.bits];
+
                 break;
             case Categories::C_car:
                 geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash);
@@ -278,6 +282,8 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
         }
     }
 
+    //now check the neighborhood of the objects
+    std::map<uint64_t, std::vector<RoadUser>> neighbors;
 
 
  /*              //if other objects near the reference are found 
