@@ -373,14 +373,17 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
 
     //New deduplication method with geohash
     geohashDeduplication(copy_input_messages);
-    int deduplicated_objects = 0;
+
+    int deduplicated_objects = 0, n_objects = 0;
     for(size_t i = 0; i < input_messages.size(); i++){
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
+            n_objects++;
             if(input_messages.at(i).objects.at(j).camera_id.size() > 1){
                 deduplicated_objects++;
             }
         }
     }
+    std::cout << "Oggetti totali: " << n_objects << std::endl;
     std::cout << "Oggetti deduplicati da deduplicationFromMessages: " << deduplicated_objects << std::endl;
 
     deduplicated_objects = 0;
