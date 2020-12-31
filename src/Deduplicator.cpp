@@ -1,6 +1,5 @@
 #include "Deduplicator.h"
 #include "geohash.h"
-#include<set>
 
 namespace fog {
 
@@ -233,9 +232,9 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
     lon_range.min = -20037726.37;
 
     std::map<uint64_t, std::vector<RoadUser>> car_map;
-    std::set<GeoHashBits> car_keys;
+    std::vector<uint64_t> car_keys;
     std::map<uint64_t, std::vector<RoadUser>> person_map;
-    std::set<GeoHashBits> person_keys;
+    std::vector<uint64_t> person_keys;
 
     for(size_t i = 0; i < input_messages.size(); i++){
 
@@ -251,7 +250,10 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     person_map[hash.bits].push_back(object);
                     to_update =  person_map[hash.bits];
-                    person_keys.insert(hash);
+                    //if it works we can optimize this operation using sets and overriding the required operators
+                    if (std::find(person_keys.begin(), person_keys.end(), hash.bits) == person_keys.end()) 
+                        person_keys.push_back(hash.bits);
+
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
@@ -262,7 +264,8 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     car_map[hash.bits].push_back(object);
                     to_update =  car_map[hash.bits];
-                    car_keys.insert(hash);
+                    if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
+                        car_keys.push_back(hash.bits);
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
@@ -273,7 +276,8 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     car_map[hash.bits].push_back(object);
                     to_update =  car_map[hash.bits];
-                    car_keys.insert(hash);
+                    if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
+                        car_keys.push_back(hash.bits);
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
