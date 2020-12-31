@@ -217,7 +217,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     }
 }
 
-void geohashDeduplication(std::vector<MasaMessage> input_messages){
+void geohashDeduplication(std::vector<MasaMessage>& input_messages){
 
     //resolution of geohash is the number of bit of the integer geohash. 52 bits corresponds to a precision of 0.5971 m
     //while 50 bits to 1.1943m. The "resolution" is half of those values because it is the number of steps the convertion function
@@ -367,22 +367,6 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     deduplicate_message.t_stamp_ms = time_in_ms();
     //deepcopy of every MasaMessage
     std::vector<MasaMessage> copy_input_messages = input_messages;
-
-    std::cout << "Controllo dei messaggi e della loro copia: " << std::endl;
-
-    for(size_t i = 0; i < input_messages.size(); i++){
-        std::cout << input_messages.at(i).cam_idx << " :" << std::endl;
-        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-            std::cout << input_messages.at(i).objects.at(j).latitude << " " << input_messages.at(i).objects.at(j).longitude << std::endl;
-        }
-    }
-
-    for(size_t i = 0; i < copy_input_messages.size(); i++){
-        std::cout << copy_input_messages.at(i).cam_idx << " :" << std::endl;
-        for(size_t j = 0; j < copy_input_messages.at(i).objects.size(); j++){
-            std::cout << copy_input_messages.at(i).objects.at(j).latitude << " " << copy_input_messages.at(i).objects.at(j).longitude << std::endl;
-        }
-    }
 
     //Old deduplication method
     deduplicationFromMessages(input_messages);
