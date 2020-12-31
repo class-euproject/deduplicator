@@ -371,14 +371,14 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     std::cout << "Controllo dei messaggi e della loro copia: " << std::endl;
 
     for(size_t i = 0; i < input_messages.size(); i++){
-        std::cout << input_messages.at(i).cam_id << " :" << std::endl;
+        std::cout << input_messages.at(i).cam_idx << " :" << std::endl;
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
             std::cout << input_messages.at(i).objects.at(j).latitude << " " << input_messages.at(i).objects.at(j).longitude << std::endl;
         }
     }
 
     for(size_t i = 0; i < copy_input_messages.size(); i++){
-        std::cout << copy_input_messages.at(i).cam_id << " :" << std::endl;
+        std::cout << copy_input_messages.at(i).cam_idx << " :" << std::endl;
         for(size_t j = 0; j < copy_input_messages.at(i).objects.size(); j++){
             std::cout << copy_input_messages.at(i).objects.at(j).latitude << " " << copy_input_messages.at(i).objects.at(j).longitude << std::endl;
         }
