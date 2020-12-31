@@ -291,7 +291,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     //controlla se modificare i dati dentro la hash map li modifica anche in input messages
                     for(size_t y = 0; y < to_update.size()-1; y++){
-                        std::cout << "Geohash ha trovato dei duplicati" << std::endl;
+                        //std::cout << "Geohash ha trovato dei duplicati" << std::endl;
 
                         object.camera_id.push_back(to_update.at(y).camera_id[0]);
                         object.object_id.push_back(to_update.at(y).object_id[0]);
