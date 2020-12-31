@@ -291,7 +291,7 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
             
             std::vector<RoadUser> neighbors = car_map[key.bits];
 
-            neighbors.push_back(car_map[neighbors->north.bits]);
+            neighbors.push_back(car_map[neighbors.north.bits]);
             neighbors.push_back(car_map[neighbors->east.bits);
             neighbors.push_back(car_map[neighbors->west.bits]);
             neighbors.push_back(car_map[neighbors->south.bits]);
