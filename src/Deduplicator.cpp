@@ -315,14 +315,14 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     deduplicate_message.lights.clear(); 
     deduplicate_message.objects.clear();
     deduplicate_message.t_stamp_ms = time_in_ms();
-    //deep or shallow?
+    //deepcopy of every MasaMessage
     std::vector<MasaMessage> copy_input_messages = input_messages;
 
     //Old deduplication method
     deduplicationFromMessages(input_messages);
 
     //New deduplication method with geohash
-    //geohashDeduplication(copy_input_messages);
+    geohashDeduplication(copy_input_messages);
     int deduplicated_objects = 0;
     for(size_t i = 0; i < input_messages.size(); i++){
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
