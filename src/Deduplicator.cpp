@@ -244,7 +244,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
             RoadUser* object = &(input_messages.at(i).objects.at(j));
             GeoHashBits hash;
             std::vector<RoadUser> to_update;
-            switch (object.category)
+            switch (object->category)
             {
             case Categories::C_person:
                 if( geohash_fast_encode(lat_range, lon_range, object->latitude, object->longitude, PERSON_RESOLUTION, &hash) == 0){
