@@ -1,6 +1,6 @@
 #include "Deduplicator.h"
 #include "geohash.h"
-#include <unordered_set>
+#include<set>
 
 namespace fog {
 
@@ -233,9 +233,9 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
     lon_range.min = -20037726.37;
 
     std::map<uint64_t, std::vector<RoadUser>> car_map;
-    std::unordered_set<GeoHashBits> car_keys;
+    std::set<GeoHashBits> car_keys;
     std::map<uint64_t, std::vector<RoadUser>> person_map;
-    std::unordered_set<GeoHashBits> person_keys;
+    std::set<GeoHashBits> person_keys;
 
     for(size_t i = 0; i < input_messages.size(); i++){
 
@@ -251,7 +251,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     person_map[hash.bits].push_back(object);
                     to_update =  person_map[hash.bits];
-                    person_keys.insert(&hash);
+                    person_keys.insert(hash);
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
@@ -262,7 +262,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     car_map[hash.bits].push_back(object);
                     to_update =  car_map[hash.bits];
-                    car_keys.insert(&hash);
+                    car_keys.insert(hash);
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
@@ -273,7 +273,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     car_map[hash.bits].push_back(object);
                     to_update =  car_map[hash.bits];
-                    car_keys.insert(&hash);
+                    car_keys.insert(hash);
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
