@@ -233,9 +233,9 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
     lon_range.min = -20037726.37;
 
     std::map<uint64_t, std::vector<RoadUser>> car_map;
-    std::unordered_set<uint64_t> car_keys;
+    std::unordered_set<GeoHashBits> car_keys;
     std::map<uint64_t, std::vector<RoadUser>> person_map;
-    std::unordered_set<uint64_t> person_keys;
+    std::unordered_set<GeoHashBits> person_keys;
 
     for(size_t i = 0; i < input_messages.size(); i++){
 
@@ -247,20 +247,36 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
             switch (object.category)
             {
             case Categories::C_person:
-                geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, PERSON_RESOLUTION, &hash);
-                person_map[hash.bits].push_back(object);
-                to_update =  person_map[hash.bits];
+                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, PERSON_RESOLUTION, &hash) == 0){
 
+                    person_map[hash.bits].push_back(object);
+                    to_update =  person_map[hash.bits];
+                    person_keys.insert(hash);
+                } else {
+                    std::cerr<< "Geohash conversion of person failed"<< std::endl;
+                }
                 break;
+
             case Categories::C_car:
-                geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash);
-                car_map[hash.bits].push_back(object);
-                to_update =  car_map[hash.bits];
+                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash) == 0){
+
+                    car_map[hash.bits].push_back(object);
+                    to_update =  car_map[hash.bits];
+                    car_keys.insert(hash);
+                } else {
+                    std::cerr<< "Geohash conversion of person failed"<< std::endl;
+                }
                 break;
+
             default:
-                geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash);
-                car_map[hash.bits].push_back(object);
-                to_update =  car_map[hash.bits];
+                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash) == 0){
+
+                    car_map[hash.bits].push_back(object);
+                    to_update =  car_map[hash.bits];
+                    car_keys.insert(hash);
+                } else {
+                    std::cerr<< "Geohash conversion of person failed"<< std::endl;
+                }
                 break;
             }
         
@@ -270,6 +286,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     //controlla se modificare i dati dentro la hash map li modifica anche in input messages
                     for(size_t y = 0; y < to_update.size()-1; y++){
+                        std::cout << "Geohash ha trovato dei duplicati" << std::endl;
 
                         object.camera_id.push_back(to_update.at(y).camera_id[0]);
                         object.object_id.push_back(to_update.at(y).object_id[0]);
@@ -283,7 +300,29 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
     }
 
     //now check the neighborhood of the objects
-    std::map<uint64_t, std::vector<RoadUser>> neighbors;
+    /*std::map<uint64_t, std::vector<RoadUser>> neighbors;
+    for(auto key: car_keys){
+
+        GeoHashNeighbors* neighbors;
+        if( geohash_get_neighbors(key, neighbors) == 0 ){
+            
+            neighbors->north.bits
+            neighbors->east.bits
+            neighbors->west.bits
+            neighbors->south.bits
+            neighbors->north_east.bits
+            neighbors->south_east.bits
+            neighbors->north_west.bits
+            neighbors->south_west.bits
+
+        } else {
+            std::cerr<< "Could not compute neighbors" << std::endl;
+        }
+        
+
+    }*/
+
+
 
 
  /*              //if other objects near the reference are found 
