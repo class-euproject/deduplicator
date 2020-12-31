@@ -251,7 +251,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     person_map[hash.bits].push_back(object);
                     to_update =  person_map[hash.bits];
-                    person_keys.insert(*hash);
+                    person_keys.insert(&hash);
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
@@ -262,7 +262,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     car_map[hash.bits].push_back(object);
                     to_update =  car_map[hash.bits];
-                    car_keys.insert(*hash);
+                    car_keys.insert(&hash);
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
@@ -273,7 +273,7 @@ void geohashDeduplication(std::vector<MasaMessage> input_messages){
 
                     car_map[hash.bits].push_back(object);
                     to_update =  car_map[hash.bits];
-                    car_keys.insert(*hash);
+                    car_keys.insert(&hash);
                 } else {
                     std::cerr<< "Geohash conversion of person failed"<< std::endl;
                 }
