@@ -291,8 +291,12 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
             
             std::vector<RoadUser> neighbors = car_map[key.bits];
 
-            neighbors.push_back(car_map[neighbors_keys->north.bits]);
-            neighbors.push_back(car_map[neighbors_keys->east.bits);
+            if(car_map[neighbors_keys->north.bits].size() != 0){
+                 std::vector<RoadUser> tmp = car_map[neighbors_keys->north.bits];
+                neighbors.push_back(tmp);
+            }
+            
+            neighbors.push_back(car_map[neighbors_keys->east.bits]);
             neighbors.push_back(car_map[neighbors_keys->west.bits]);
             neighbors.push_back(car_map[neighbors_keys->south.bits]);
             neighbors.push_back(car_map[neighbors_keys->north_east.bits]);
