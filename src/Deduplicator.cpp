@@ -315,11 +315,33 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     deduplicate_message.lights.clear(); 
     deduplicate_message.objects.clear();
     deduplicate_message.t_stamp_ms = time_in_ms();
+    //deep or shallow?
+    std::vector<MasaMessage> copy_input_messages = input_messages;
 
     //Old deduplication method
     deduplicationFromMessages(input_messages);
+
     //New deduplication method with geohash
-    //geohashDeduplication(input_messages);
+    //geohashDeduplication(copy_input_messages);
+    int deduplicated_objects = 0;
+    for(size_t i = 0; i < input_messages.size(); i++){
+        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
+            if(input_messages.at(i).objects.at(j).camera_id.size() > 1){
+                deduplicated_objects++;
+            }
+        }
+    }
+    std::cout << "Oggetti deduplicati in input messages: " << deduplicated_objects << std::endl;
+
+    deduplicated_objects = 0;
+    for(size_t i = 0; i < copy_input_messages.size(); i++){
+        for(size_t j = 0; j < copy_input_messages.at(i).objects.size(); j++){
+            if(copy_input_messages.at(i).objects.at(j).camera_id.size() > 1){
+                deduplicated_objects++;
+            }
+        }
+    }
+    std::cout << "Oggetti deduplicati in copy input messages: " << deduplicated_objects << std::endl << std::endl;
 
     for(auto m : input_messages) {
         for(size_t i = 0; i < m.objects.size(); i++) {
@@ -410,7 +432,7 @@ void * Deduplicator::deduplicate(void *n) {
             // filter old messages from the same id (camera or traffic light)
             input_messages = filterOldMessages(input_messages);
             prof.tock("filter old");
-            if( !input_messages.empty()){
+            if(input_messages.size() >= 2){
                 prof.tick("deduplication");
                 // takes the input messages and return the deduplicate message
                 computeDeduplication(input_messages, deduplicate_message);
