@@ -292,7 +292,8 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
             std::vector<RoadUser> neighbors = car_map[key.bits];
 
             if(car_map[neighbors_keys->north.bits].size() != 0){
-                 std::vector<RoadUser> tmp = car_map[neighbors_keys->north.bits];
+                std::vector<RoadUser> tmp = car_map[neighbors_keys->north.bits];
+                //Function for pushing an entire vector
                 neighbors.push_back(tmp);
             }
             
@@ -338,13 +339,15 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
     deduplicate_message.objects.clear();
     deduplicate_message.t_stamp_ms = time_in_ms();
     //deepcopy of every MasaMessage
-    std::vector<MasaMessage> copy_input_messages = input_messages;
+    //std::vector<MasaMessage> copy_input_messages = input_messages;
 
     //Old deduplication method
     deduplicationFromMessages(input_messages);
+    deduplicate_message = input_messages;
 
+    /*
     //New deduplication method with geohash
-    geohashDeduplication(copy_input_messages);
+    //geohashDeduplication(copy_input_messages);
 
     int deduplicated_objects = 0, n_objects = 0;
     for(size_t i = 0; i < input_messages.size(); i++){
@@ -391,7 +394,9 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
 
     create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
 
-    deduplicate_message.num_objects = deduplicate_message.objects.size();
+    deduplicate_message.num_objects = deduplicate_message.objects.size();*/
+
+
     
 }
 
@@ -435,49 +440,40 @@ void * Deduplicator::deduplicate(void *n) {
     MasaMessage deduplicate_message;
     std::vector<cv::Point2f> map_pixels;
     fog::Profiler prof("Deduplicator");
-    while(gRun){
+   while(gRun){
         /* Delay is necessary. If the Deduplicator takes messages too quickly there is a risk 
         of not tracking the road users correctly. each message is read as a frame. 
         See the initialAge variable. */
         prof.tick("total time");
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));        
+        // std::this_thread::sleep_for(std::chrono::milliseconds(30));        
         prof.tick("get messages");
-        tmp = this->inCm->getMessages();
-        for(int i = 0; i < tmp.size(); i++)
-            input_messages.push_back(tmp.at(i));
+        input_messages = this->inCm->getMessages();
         prof.tock("get messages");
         // std::cout<<"dedup dim reading list: "<<input_messages.size()<<std::endl;
         if(input_messages.size() == 0) {
             prof.tick("total time");
             continue;        // no received messages
         }
-        else if(input_messages.size() >= 2){
-            // std::cout<<"get messages\n";
-            prof.tick("filter old");
-            // filter old messages from the same id (camera or traffic light)
-            input_messages = filterOldMessages(input_messages);
-            prof.tock("filter old");
-            if(input_messages.size() >= 2){
-                prof.tick("deduplication");
-                // takes the input messages and return the deduplicate message
-                computeDeduplication(input_messages, deduplicate_message);
-                prof.tock("deduplication");
-            }
-        }
-
-        if( !input_messages.empty())
-            
-            prof.tick("show update");
-            showUpdates();
-            prof.tock("show update");
-            prof.tick("insert message");
-            this->outCm->insertMessage(deduplicate_message);
-            input_messages.clear();
-            tmp.clear();
-            prof.tock("insert message");
-            prof.tock("total time");
-            prof.printStats();
+        // std::cout<<"get messages\n";
+        prof.tick("filter old");
+        // filter old messages from the same id (camera or traffic light)
+        input_messages = filterOldMessages(input_messages);
+        prof.tock("filter old");
+        prof.tick("deduplication");
+        // takes the input messages and return the deduplicate message
+        computeDeduplication(input_messages, deduplicate_message);
+        prof.tock("deduplication");
+        prof.tick("show update");
+        showUpdates();
+        prof.tock("show update");
+        prof.tick("insert message");
+        this->outCm->insertMessage(deduplicate_message);
+        input_messages.clear();
+        prof.tock("insert message");
+        prof.tock("total time");
+        prof.printStats();
     }
+
     return (void *)NULL;
 }
 }
