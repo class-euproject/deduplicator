@@ -217,7 +217,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     }
 }
 
-void geohashDeduplication(std::vector<MasaMessage>& input_messages){
+/*void geohashDeduplication(std::vector<MasaMessage>& input_messages){
 
     //resolution of geohash is the number of bit of the integer geohash. 52 bits corresponds to a precision of 0.5971 m
     //while 50 bits to 1.1943m. The "resolution" is half of those values because it is the number of steps the convertion function
@@ -323,7 +323,8 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
             std::cerr<< "Could not compute neighbors" << std::endl;
         }
     }
-}
+    
+}*/
 /**
  * Compute the deduplication:
  * - for the road users it uses the tracker. The tracker deletes a point if two different points 
@@ -332,8 +333,8 @@ void geohashDeduplication(std::vector<MasaMessage>& input_messages){
  * (filterOldMessages)
 */
 void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages, MasaMessage &deduplicate_message) {
-    std::vector<tracking::obj_m> cur_message;
-    double east, north, up;
+    /*std::vector<tracking::obj_m> cur_message;
+    double east, north, up;*/
     // deduplicate with the Tracker: fill only cur_message with the information of all collected MasaMessage. 
     deduplicate_message.lights.clear(); 
     deduplicate_message.objects.clear();
@@ -343,7 +344,19 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
 
     //Old deduplication method
     deduplicationFromMessages(input_messages);
-    deduplicate_message = input_messages;
+    for(size_t i = 0; i < input_messages.size(); i++){
+        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
+            for(size_t k = 0; k < input_messages.at(i).lights.size(); k++){
+                deduplicate_message.lights.push_back(input_messages.at(i).lights.at(k)); 
+            }
+
+            for(size_t k = 0; k < input_messages.at(i).objects.size(); k++){
+                deduplicate_message.objects.push_back(input_messages.at(i).objects.at(k)); 
+            }
+        }
+    }
+    deduplicate_message.num_objects = deduplicate_message.objects.size();
+    
 
     /*
     //New deduplication method with geohash
