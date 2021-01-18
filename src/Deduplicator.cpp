@@ -1,5 +1,4 @@
 #include "Deduplicator.h"
-#include "geohash.h"
 
 namespace fog {
 
@@ -106,8 +105,7 @@ float Deduplicator::distance(const RoadUser object1, const RoadUser object2) {
 /**
  * Compute the nearest object under a certain threshold 
  * to the reference, with the same category in the given MasaMessage, if any.
- * 
-*/
+ */
 bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, const float threshold, DDstruct& ris){
     DDstruct nearest;
     bool found_something = false;
@@ -130,8 +128,7 @@ bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, con
 }
 
 /**
- * Compute deduplication from input messages
- * 
+ * Standard algorithm for computing deduplication from input messages
 */
 void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_messages){
 
@@ -203,128 +200,12 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                             input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
                         }
                     }
-
-                    //Uncomment this to print some results:
-                    /*std::cout << "Object at " << j << " from camera " << input_messages.at(i).cam_idx << " is also in ";
-                    for(size_t k = 0; k < input_messages.at(i).objects.at(j).camera_id.size(); k++){
-
-                        std::cout<< input_messages.at(i).objects.at(j).camera_id.at(k)<< " ";
-                    }
-                    std::cout<<std::endl;*/
                 }
             }
         }
     }
 }
 
-/*void geohashDeduplication(std::vector<MasaMessage>& input_messages){
-
-    //resolution of geohash is the number of bit of the integer geohash. 52 bits corresponds to a precision of 0.5971 m
-    //while 50 bits to 1.1943m. The "resolution" is half of those values because it is the number of steps the convertion function
-    //takes to do the conversion. Each step defines 2 bit. Ref at https://github.com/yinqiwen/ardb/wiki/Spatial-Index
-    const int CAR_RESOLUTION = 25;  
-    const int PERSON_RESOLUTION = 26;
-
-    //Maybe changing this values we can improve performances/precision if needed
-    GeoHashRange lat_range, lon_range;
-    lat_range.max = 45.0;
-    lat_range.min = 44.0;
-    lon_range.max = 11.0;
-    lon_range.min = 10.0;
-
-    std::map<uint64_t, std::vector<RoadUser>> car_map;
-    std::vector<GeoHashBits> car_keys;
-    std::map<uint64_t, std::vector<RoadUser>> person_map;
-    std::vector<GeoHashBits> person_keys;
-
-    for(size_t i = 0; i < input_messages.size(); i++){
-
-        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-
-            RoadUser object = input_messages.at(i).objects.at(j);
-            GeoHashBits hash;
-            switch (object.category)
-            {
-            case Categories::C_person:
-                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, PERSON_RESOLUTION, &hash) == 0){
-
-                    person_map[hash.bits].push_back(object);
-                    //if it works we can optimize this operation using sets and overriding the required operators
-                    if (std::find(person_keys.begin(), person_keys.end(), hash.bits) == person_keys.end()) 
-                        person_keys.push_back(hash);
-
-                } else {
-                    std::cerr<< "Geohash conversion of person failed"<< std::endl;
-                }
-                break;
-
-            case Categories::C_car:
-                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash) == 0){
-
-                    car_map[hash.bits].push_back(object);
-                    if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
-                        car_keys.push_back(hash);
-                } else {
-                    std::cerr<< "Geohash conversion of car failed"<< std::endl;
-                }
-                break;
-
-            default:
-                if( geohash_fast_encode(lat_range, lon_range, object.latitude, object.longitude, CAR_RESOLUTION, &hash) == 0){
-
-                    car_map[hash.bits].push_back(object);
-                    if (std::find(car_keys.begin(), car_keys.end(), hash.bits) == car_keys.end()) 
-                        car_keys.push_back(hash);
-                } else {
-                    std::cerr<< "Geohash conversion of person failed"<< std::endl;
-                }
-                break;
-            }
-        }
-    }
-
-    //now check the neighborhood of the objects
-    for(auto key: car_keys){
-
-        GeoHashNeighbors* neighbors_keys;
-        if( geohash_get_neighbors(key, neighbors_keys) == 0 ){
-            
-            std::vector<RoadUser> neighbors = car_map[key.bits];
-
-            if(car_map[neighbors_keys->north.bits].size() != 0){
-                std::vector<RoadUser> tmp = car_map[neighbors_keys->north.bits];
-                //Function for pushing an entire vector
-                neighbors.push_back(tmp);
-            }
-            
-            neighbors.push_back(car_map[neighbors_keys->east.bits]);
-            neighbors.push_back(car_map[neighbors_keys->west.bits]);
-            neighbors.push_back(car_map[neighbors_keys->south.bits]);
-            neighbors.push_back(car_map[neighbors_keys->north_east.bits]);
-            neighbors.push_back(car_map[neighbors_keys->south_east.bits]);
-            neighbors.push_back(car_map[neighbors_keys->north_west.bits]);
-            neighbors.push_back(car_map[neighbors_keys->south_west.bits]);
-
-            if(neighbors.size() != 1){
-                for(size_t i = 0; i < neighbors.size(); i++){
-                    int cam_id = neighbors.at(i).camera_id.at(0);
-                    int tracker_id = neighbors.at(i).object_id.at(0);
-                    for(size_t j = 0; j < neighbors.size(); j++){
-                        //std::cout << "Geohash ha trovato dei duplicati" << std::endl;
-                        if(i != j){
-                            neighbors.at(j).camera_id.push_back(cam_id);
-                            neighbors.at(j).object_id.push_back(tracker_id);
-                        }
-                    }
-                }
-
-            }
-        } else {
-            std::cerr<< "Could not compute neighbors" << std::endl;
-        }
-    }
-    
-}*/
 /**
  * Compute the deduplication:
  * - for the road users it uses the tracker. The tracker deletes a point if two different points 
@@ -333,14 +214,10 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
  * (filterOldMessages)
 */
 void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages, MasaMessage &deduplicate_message) {
-    /*std::vector<tracking::obj_m> cur_message;
-    double east, north, up;*/
-    // deduplicate with the Tracker: fill only cur_message with the information of all collected MasaMessage. 
+
     deduplicate_message.lights.clear(); 
     deduplicate_message.objects.clear();
     deduplicate_message.t_stamp_ms = time_in_ms();
-    //deepcopy of every MasaMessage
-    //std::vector<MasaMessage> copy_input_messages = input_messages;
 
     //Old deduplication method
     deduplicationFromMessages(input_messages);
@@ -356,61 +233,6 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
         }
     }
     deduplicate_message.num_objects = deduplicate_message.objects.size();
-    
-
-    /*
-    //New deduplication method with geohash
-    //geohashDeduplication(copy_input_messages);
-
-    int deduplicated_objects = 0, n_objects = 0;
-    for(size_t i = 0; i < input_messages.size(); i++){
-        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-            n_objects++;
-            if(input_messages.at(i).objects.at(j).camera_id.size() > 1){
-                deduplicated_objects++;
-            }
-        }
-    }
-    std::cout << "Oggetti totali: " << n_objects << std::endl;
-    std::cout << "Oggetti deduplicati da deduplicationFromMessages: " << deduplicated_objects << std::endl;
-
-    deduplicated_objects = 0;
-    for(size_t i = 0; i < copy_input_messages.size(); i++){
-        for(size_t j = 0; j < copy_input_messages.at(i).objects.size(); j++){
-            if(copy_input_messages.at(i).objects.at(j).camera_id.size() > 1){
-                deduplicated_objects++;
-            }
-        }
-    }
-    std::cout << "Oggetti deduplicati da geohashDeduplication: " << deduplicated_objects << std::endl << std::endl;
-
-    for(auto m : input_messages) {
-        for(size_t i = 0; i < m.objects.size(); i++) {
-            // skip some special road user 
-            if(m.objects.at(i).category == C_marelli1 || 
-               m.objects.at(i).category == C_marelli2 || 
-               m.objects.at(i).category == C_quattroporte ||
-               m.objects.at(i).category == C_levante || 
-               m.objects.at(i).category == C_rover) {
-                deduplicate_message.objects.push_back(m.objects.at(i));    
-            }
-            else { // the normal road user pass to tracker
-                this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
-                cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
-            }
-        }
-        for(size_t i = 0; i < m.lights.size(); i++)
-            deduplicate_message.lights.push_back(m.lights.at(i)); 
-    }
-
-    this->t->track(cur_message,this->trVerbose);
-
-    create_message_from_tracker(t->getTrackers(), &deduplicate_message, this->gc, this->adfGeoTransform);
-
-    deduplicate_message.num_objects = deduplicate_message.objects.size();*/
-
-
-    
 }
 
 /**
