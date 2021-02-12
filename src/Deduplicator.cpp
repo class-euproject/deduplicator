@@ -91,6 +91,111 @@ std::vector<MasaMessage> Deduplicator::filterOldMessages(std::vector<MasaMessage
     return copy;
 }
 
+/** from float to uint8 the conversion is uint8_t(std::abs(vel * 3.6 * 2)), so this is the opposite*/
+double uint8_to_speed(const uint8_t speed){ return static_cast<double>(speed)/7.2;}
+
+/** This should calculate the opposite of orientation = uint8_t((int((yaw * 57.29 + 360)) % 360) * 17 / 24). 
+ * The output is in radiants
+*/
+double uint16_to_yaw(const uint16_t yaw){ 
+	double conversion = static_cast<double>(yaw) * (24.0/17.0);
+	if(conversion > 360)
+		conversion -= 360;
+	return conversion/57.29;
+} 
+
+/**
+ * Compute the weighted average of values vector
+*/
+double weightedAverage(std::vector<double>& weights, std::vector<double>& values){
+
+    if( weights.size() == values.size() and weights.size() > 0){
+        double average = 0, w_sum = 0;
+        for(size_t i = 0; i < values.size(); i++){
+            average += weights.at(i) * values.at(i);
+            w_sum += weights.at(i);
+        }
+        return average/w_sum;
+
+    } else { return 0.0; }
+}
+
+/**
+ * Compute the average between angles. Method taken by https://www.themathdoctors.org/averaging-angles/
+ * BE CAREFUL TO THE RANGE OF INPUT ANGLES! THIS SHOULD BE BETWEEN +PI/2 AND -PI/2
+ * 
+*/
+double angleAverage(std::vector<double>& orientation_vector){
+
+    double sin, cos, sum_of_sin = 0.0, sum_of_cos = 0.0, average = 0.0;
+    for(auto elem : orientation_vector){
+        sincos(elem, &sin, &cos);
+        sum_of_sin += sin;
+        sum_of_cos += cos;
+    }
+    return atan2(sum_of_cos, sum_of_sin);
+}
+
+/**
+ * Compute the mean of each value for each duplicated objects. 
+*/
+void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::vector<MasaMessage> &input_messages){
+
+    std::vector<double> latitude_vector, longitude_vector, error_vector, speed_vector, orientation_vector;
+    double avg_latitude, avg_longitude, avg_speed, avg_orientation;
+
+    //retrieval of all data for average computation (skipping the 0-error ones)
+    for(size_t i = 0; i < nearest.size(); i++){
+        size_t message_index = nearest.at(i).message_index;
+        size_t object_index = nearest.at(i).object_index;
+        RoadUser object = input_messages.at(message_index).objects.at(object_index);
+
+        //Take into account only error > 0 because if the error is exactly 0 the object is too far away from the camera
+        if (object.precision > 0){
+
+            latitude_vector.push_back(object.latitude);
+            longitude_vector.push_back(object.longitude);
+            error_vector.push_back(object.precision);
+            speed_vector.push_back(uint8_to_speed(object.speed));
+            orientation_vector.push_back(uint16_to_yaw(object.orientation));
+        }
+    }
+
+    //if 2 or more data are available compute the average
+    if(latitude_vector.size() > 1){
+        std::vector<double> weights;
+        //hyperbolic weights. Other conversion can be considered (linear, quadratic...)
+        for(auto elem: error_vector){
+            weights.push_back(1.0/elem);
+        }
+
+        avg_latitude = weightedAverage(weights, latitude_vector);
+        avg_longitude = weightedAverage(weights, longitude_vector);
+        avg_speed = weightedAverage(weights, speed_vector);
+        avg_orientation = angleAverage(orientation_vector);
+
+    //otherwise the average of each value is the one available
+    } else {
+
+        avg_latitude = latitude_vector.at(0);
+        avg_longitude = longitude_vector.at(0);
+        avg_speed = speed_vector.at(0);
+        avg_orientation = orientation_vector.at(0);
+    }
+
+    //overwrite the computed values into the input messages
+    for(size_t i = 0; i < nearest.size(); i++){
+        size_t message_index = nearest.at(i).message_index;
+        size_t object_index = nearest.at(i).object_index;
+        input_messages.at(message_index).objects.at(object_index).latitude = avg_latitude;
+        input_messages.at(message_index).objects.at(object_index).longitude = avg_longitude;
+        input_messages.at(message_index).objects.at(object_index).speed = speed_to_uint8(avg_speed);
+        input_messages.at(message_index).objects.at(object_index).orientation = orientation_to_uint8(avg_orientation);
+    }
+
+    return;
+}
+
 /**
  * Compute euclidian distance 
 */
@@ -136,7 +241,6 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     const float PERSON_THRESHOLD = 0.5;
 
     for(size_t i = 0; i < input_messages.size(); i++){
-
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
             /*since this loop look for nearest objects in all other messages, we can assume that if an object have multiple ids in cam_id 
             (or object_id, it's the same) it's a duplicated from another object already processed. Therefore we can just skip it.*/
@@ -184,7 +288,10 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 
                 //if other objects near the reference are found 
                 if(nearest.size() != 1){
-                    //update the objects info about cam_id and object_id in input_messages.
+                    //update objects info with the average between all the duplicated objects.
+                    computeMeanOfDuplicatedObjects(nearest, input_messages);
+
+                    //update cam_id and object_id in input_messages
                     for(size_t x = 0; x < nearest.size(); x++){
 
                         int cam_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(0);
@@ -207,32 +314,58 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 }
 
 /**
- * Compute the deduplication:
- * - for the road users it uses the tracker. The tracker deletes a point if two different points 
- * are close enough together.
- *  - for the traffic lights it includes all information. Simply delete old messages 
- * (filterOldMessages)
+ * Elaborate Message:
+ * - compute deduplication of objects. 
+ * - compute the (weighted) mean of each duplicated object property
+ * - for smart vehicles, track their objects
+ * - output: a single MasaMessage with the aggregation of all above procedures
 */
-void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages, MasaMessage &deduplicate_message) {
+void Deduplicator::elaborateMessage(std::vector<MasaMessage> input_messages, MasaMessage &output_message) {
 
-    deduplicate_message.lights.clear(); 
-    deduplicate_message.objects.clear();
-    deduplicate_message.t_stamp_ms = time_in_ms();
+    //i veicoli smart non devono essere "deduplicati". gli vanno aggiunti gli id nel caso sia detectata da una telecamera.
+    //id quattroporte/levante anche come id 
+    output_message.lights.clear(); 
+    output_message.objects.clear();
+    output_message.t_stamp_ms = time_in_ms();
 
-    //Old deduplication method
-    deduplicationFromMessages(input_messages);
-    for(size_t i = 0; i < input_messages.size(); i++){
-        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-            for(size_t k = 0; k < input_messages.at(i).lights.size(); k++){
-                deduplicate_message.lights.push_back(input_messages.at(i).lights.at(k)); 
+    //Standard deduplication method
+    if(input_messages.size() > 1)
+        deduplicationFromMessages(input_messages);
+
+    //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
+    std::vector<tracking::obj_m> objects_to_track;
+    for(size_t i = 0; i < input_messages.size(); i++) {
+        MasaMessage& m = input_messages.at(i);
+        //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
+        if( m.objects.at(0).category == C_marelli1 || 
+            m.objects.at(0).category == C_marelli2 || 
+            m.objects.at(0).category == C_quattroporte ||
+            m.objects.at(0).category == C_levante || 
+            m.objects.at(0).category == C_rover) {
+            for(size_t j = 1; j < m.objects.size(); j++) {
+                //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
+                if(m.objects.at(j).object_id.size() <= 1){
+                    double north, east, up;
+                    this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
+                    objects_to_track.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
+                }
             }
-
-            for(size_t k = 0; k < input_messages.at(i).objects.size(); k++){
-                deduplicate_message.objects.push_back(input_messages.at(i).objects.at(k)); 
-            }
+        } else {
+            output_message.objects.push_back(m.objects.at(i));  
         }
+
+        for(size_t j = 0; j < m.lights.size(); j++)
+            output_message.lights.push_back(m.lights.at(j)); 
+        
     }
-    deduplicate_message.num_objects = deduplicate_message.objects.size();
+
+    //if some object need to be tracked, track it
+    if(objects_to_track.size() > 0){
+        this->t->track(objects_to_track, this->trVerbose);
+        create_message_from_tracker(t->getTrackers(), &output_message, this->gc, this->adfGeoTransform);
+    }
+
+    output_message.num_objects = output_message.objects.size();
 }
 
 /**
@@ -294,10 +427,10 @@ void * Deduplicator::deduplicate(void *n) {
         // filter old messages from the same id (camera or traffic light)
         input_messages = filterOldMessages(input_messages);
         prof.tock("filter old");
-        prof.tick("deduplication");
+        prof.tick("elaboration");
         // takes the input messages and return the deduplicate message
-        computeDeduplication(input_messages, deduplicate_message);
-        prof.tock("deduplication");
+        elaborateMessage(input_messages, deduplicate_message);
+        prof.tock("elaboration");
         prof.tick("show update");
         showUpdates();
         prof.tock("show update");
