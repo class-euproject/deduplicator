@@ -216,7 +216,10 @@ bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, con
     bool found_something = false;
     for(size_t i = 0; i < message.objects.size(); i++){
 
-        if(ref.rs.category == message.objects.at(i).category){
+        //For a camera, our smart vehicles are treated as a car
+        if(ref.rs.category == message.objects.at(i).category || 
+           ref.rs.category == Categories::C_car and message.objects.at(i).category >= Categories::C_marelli1 ||
+           ref.rs.category >= Categories::C_marelli1 and message.objects.at(i).category == Categories::C_car ){
             float distance = this->distance(message.objects.at(i), ref.rs);
             if(distance < threshold){
                 if(found_something == false or nearest.distance > distance){
@@ -320,7 +323,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
  * - for smart vehicles, track their objects
  * - output: a single MasaMessage with the aggregation of all above procedures
 */
-void Deduplicator::elaborateMessage(std::vector<MasaMessage> input_messages, MasaMessage &output_message) {
+void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, MasaMessage &output_message) {
 
     //i veicoli smart non devono essere "deduplicati". gli vanno aggiunti gli id nel caso sia detectata da una telecamera.
     //id quattroporte/levante anche come id 
@@ -339,7 +342,6 @@ void Deduplicator::elaborateMessage(std::vector<MasaMessage> input_messages, Mas
         //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
         if( m.objects.at(0).category == C_marelli1 || 
             m.objects.at(0).category == C_marelli2 || 
-            m.objects.at(0).category == C_quattroporte ||
             m.objects.at(0).category == C_levante || 
             m.objects.at(0).category == C_rover) {
             for(size_t j = 1; j < m.objects.size(); j++) {
