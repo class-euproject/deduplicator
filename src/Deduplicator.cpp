@@ -431,7 +431,7 @@ void * Deduplicator::deduplicate(void *n) {
         prof.tock("filter old");
         prof.tick("elaboration");
         // takes the input messages and return the deduplicate message
-        elaborateMessage(input_messages, deduplicate_message);
+        elaborateMessages(input_messages, deduplicate_message);
         prof.tock("elaboration");
         prof.tick("show update");
         showUpdates();
