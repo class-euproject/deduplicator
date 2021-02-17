@@ -47,7 +47,9 @@ Deduplicator::Deduplicator(double* adfGeoTransform, const double latitude, const
     nStates = 5;
     dt = 0.03;
     trVerbose = false;
+    std::cout << "BEFORE T" << std::endl;
     t = new tracking::Tracking(nStates, dt, initialAge);
+    std::cout << "AFTER T" << std::endl;
 }
 
 Deduplicator::~Deduplicator() {
@@ -120,13 +122,19 @@ void Deduplicator::computeDeduplication(std::vector<MasaMessage> input_messages,
             }
             else { // the normal road user pass to tracker
                 this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
-                cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
+                cur_message.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1,
+                                                      m.objects.at(i).latitude, m.objects.at(i).longitude,
+                                                      m.objects.at(i).idx, m.objects.at(i).idy, 0.0)); //use pixel_x and
+                                                      // pixel_y as pointers to info_for_dedu
             }
         }
         for(size_t i = 0; i < m.lights.size(); i++)
             deduplicate_message.lights.push_back(m.lights.at(i)); 
     }
+    std::cout << "BEFORE TRACK" << std::endl;
+    std::cout << "cur_message size is " << cur_message.size() << std::endl;
     this->t->track(cur_message,this->trVerbose);
+    std::cout << "AFTER TRACK" << std::endl;
 
     this->create_message_from_tracker(t->getTrackers(), &deduplicate_message);
 
