@@ -1,5 +1,4 @@
 #include "Deduplicator.h"
-#include "../include/Deduplicator.h"
 #include <ctime>
 #include <tuple>
 #include <pybind11/pybind11.h>
@@ -24,13 +23,13 @@ Categories category_parse(int class_number) {
     }
 }
 
-// std::vector<tracking::Tracker>
-// compute_deduplicator(std::vector<std::vector<tracking::Tracker>> &input_deduplicator) {
-//std::vector<std::tuple<uint32_t, uint64_t, int, int, float, float, double, double>>
-std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, double, double, int, int, int, int>>>
+/*std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, double, double, int, int, int, int>>>
+compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
+        int, int>>> &input_deduplicator) {*/
+// TODO: should we return one camera_id or the whole vector? Same for object id?
+std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>>
         compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
-                             int, int>>> &input_deduplicator) {
-                                    //, std::vector<uint32_t> cam_ids, std::vector<uint64_t> timestamps) {
+                             int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids) { // std::vector<uint64_t> timestamps
     double latitude = 44.655540;
     double longitude = 10.934315;
     double *adfGeoTransform = (double *) calloc(6, sizeof(double));
@@ -54,9 +53,21 @@ std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, do
             // deduplicator.create_message_from_tracker(tracker_list, &message);
             // info is a tuple of <lat (float), lon (float), category (int), velocity (uint8_t), yaw (uint8_t)>
             // RoadUser receives as params: <lat, lon, vel, yaw, cat>
-            RoadUser r{static_cast<float>(std::get<0>(info)), static_cast<float>(std::get<1>(info)),
+            /*RoadUser r{static_cast<float>(std::get<0>(info)), static_cast<float>(std::get<1>(info)),
                        static_cast<uint8_t>(std::get<3>(info)), std::get<4>(info),
-                       static_cast<Categories>(std::get<2>(info)), static_cast<int>(idx),  static_cast<int>(idy)};
+                       static_cast<Categories>(std::get<2>(info)), static_cast<int>(idx),  static_cast<int>(idy)};*/
+            RoadUser r;
+            r.latitude = static_cast<float>(std::get<0>(info));
+            r.longitude = static_cast<float>(std::get<1>(info));
+            r.precision = 0.0;
+            r.speed = std::get<3>(info);
+            r.orientation = std::get<4>(info);
+            r.category = static_cast<Categories>(std::get<2>(info));
+            r.camera_id.push_back(cam_ids[idx]); // camera id
+            r.object_id.push_back(std::get<5>(info)); // tracker id
+            /*r.idx = idx;
+            r.idy = idy;*/
+            // TODO: check what values should be placed in r.camera_id (vector<int>)
 
             // TODO: check if correct
             // TODO: message.t_stamp_ms = timestamps[idx];
@@ -68,20 +79,20 @@ std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, do
         idx++;
     }
     MasaMessage return_message;
-    deduplicator.computeDeduplication(input_messages, return_message);
+    deduplicator.elaborateMessages(input_messages, return_message);
     std::cout << "After deduplication" << std::endl;
     // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
     // tracker.predList[-1].yaw (float), tracker.traj[-1].x (double), tracker.traj[-1].y (double) (which can be directly
     // converted to lat, lon)
-    std::vector<std::tuple<uint32_t, int, int, float, float, double, double, int, int, int, int>>
-        info(deduplicator.t->getTrackers().size());
+    // std::vector<std::tuple<uint32_t, int, int, float, float, double, double, int, int, int, int>>
+    //    info(deduplicator.t->getTrackers().size());
     int i = 0;
     double lat, lon, alt;
     float vel, yaw;
     int pixel_x, pixel_y, pixel_w, pixel_h;
     // TODO: add new field idx to Tracker to point to the exact input message object in order to retrieve lat/lon &
     //  avoid unneeded conversions
-    for (const tracking::Tracker& tracker : deduplicator.t->getTrackers()) {
+    /*for (const tracking::Tracker& tracker : deduplicator.t->getTrackers()) {
         vel = yaw = 0.0f;
         // TODO: store XXX and YYY in RoadUser and tracker structure so it can be matched to initial position (also previous TODO)
         lat = std::get<0>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
@@ -98,8 +109,34 @@ std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, do
         }
         info[i++] = std::make_tuple(20939, tracker.id, tracker.cl, vel, yaw, lat, lon, pixel_x, pixel_y, pixel_w,
                                     pixel_h); // TODO: remove hardcoded CamId
+    }*/
+    // std::vector<std::tuple<std::vector<int>, std::vector<int>, int, double, double, double, double, int, int, int, int>>
+    std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>
+            info(return_message.num_objects);
+    std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
+    for (const RoadUser ru : return_message.objects) {
+        /*lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
+        lon = std::get<1>(input_deduplicator[ru.idx][ru.idy]);
+        pixel_x = std::get<6>(input_deduplicator[ru.idx][ru.idy]);
+        pixel_y = std::get<7>(input_deduplicator[ru.idx][ru.idy]);
+        pixel_w = std::get<8>(input_deduplicator[ru.idx][ru.idy]);
+        pixel_h = std::get<9>(input_deduplicator[ru.idx][ru.idy]);*/
+        vel = deduplicator.uint8_to_speed(ru.speed);
+        yaw = deduplicator.uint16_to_yaw(ru.orientation);
+        // TODO: this -> info[i++] = std::make_tuple(ru.camera_id, ru.object_id, int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
+        // TODO:     OR just first camera id and object id (instead of whole vectors)
+        if (ru.camera_id.size() == 0) {
+            std::cout << "CAMERA IDS LIST IS EMPTY" << std::flush << std::endl;
+        }
+        if (ru.object_id.size() == 0) {
+            std::cout << "OBJECT IDS LIST IS EMPTY" << std::flush << std::endl;
+        }
+        info[i++] = std::make_tuple(ru.camera_id.at(0), ru.object_id.at(0), int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
+                                    pixel_w, pixel_h);
+
     }
     std::cout << "After creating info" << std::endl;
+    std::cout << "INFO SIZE IS " << info.size() << std::endl;
     return std::make_tuple(return_message.t_stamp_ms, info);
 }
 

@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.5)
-
 project (classAggregator)
 
 set(CMAKE_CXX_STANDARD 11) # C++11...
@@ -23,7 +22,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declara
 # compile
 #cuda_include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CUDA_INCLUDE_DIRS} ${CUDNN_INCLUDE_DIRS})
 
-
 #-------------------------------------------------------------------------------
 # External Libraries
 #-------------------------------------------------------------------------------
@@ -42,6 +40,7 @@ include_directories(/usr/include/gdal)
 #-------------------------------------------------------------------------------
 # Submodules
 #-------------------------------------------------------------------------------
+
 #add_subdirectory(tkCommon)
 add_subdirectory(class-tracker)
 #add_subdirectory(masa_protocol)
@@ -70,9 +69,11 @@ include_directories(BEFORE ${PYTHON_INCLUDE_DIRS} ./include)
 pybind11_add_module(deduplicator SHARED src/modules.cpp src/Deduplicator.cpp src/utils.cpp src/ClassAggregatorMessage.cpp)
 target_link_libraries(deduplicator PUBLIC class-tracker gdal ${PYTHON_LIBRARIES})
 
+
 #-------------------------------------------------------------------------------
 # Build executables
 #-------------------------------------------------------------------------------
+
 #add_executable(class-aggregator demo/main.cpp)
 #target_link_libraries(class-aggregator classAggregator)
 

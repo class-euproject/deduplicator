@@ -16,9 +16,9 @@ Sender::Sender(ClassAggregatorMessage &sharedMessage,
     lw_flag = logWriterFlag;
     lw = new LogWriter("../demo/data/class_aggregate_log/");
 
-    comm = new std::vector<Communicator<MasaMessage>>(SOCK_DGRAM);
+    comm = new std::vector<Communicator<MasaMessageOrig>>(SOCK_DGRAM); //MasaMessageOrig
     for(int i = 0; i<numComm; i++) {
-        Communicator<MasaMessage> p;
+        Communicator<MasaMessageOrig> p; //MasaMessageOrig
         comm->push_back(p);
         comm->at(i).open_client_socket((char *)ipList[i].c_str(), portList[i]);
         socketDescList.push_back(comm->at(i).get_socket());
@@ -39,6 +39,31 @@ void Sender::end() {
     pthread_join(writerThread, NULL);
 }
 
+MasaMessageOrig parse_MasaMessage_to_MasaMessageOrig(const MasaMessage message){
+
+    MasaMessageOrig res;
+    for(auto obj : message.objects){
+        RoadUserOrig tmp;
+        tmp.latitude = obj.latitude;
+        tmp.longitude = obj.longitude;
+        tmp.speed = obj.speed;
+        tmp.orientation = obj.orientation;
+        //std::cout << "Categoria dell'oggetto nel nuovo MasaProtocol " << obj.category << std::endl;
+        tmp.category = obj.category;
+        res.objects.push_back(tmp);
+    }
+
+    for(auto obj : message.lights){
+        res.lights.push_back(obj);
+    }
+
+    res.num_objects = res.objects.size();
+    res.t_stamp_ms = message.t_stamp_ms;
+    res.cam_idx = message.cam_idx;
+
+    return res;
+}
+
 void * Sender::send(void *n) {
     std::vector<MasaMessage> input_messages; //but it must contain only one message.
     MasaMessage send_message;
@@ -53,13 +78,14 @@ void * Sender::send(void *n) {
         if(input_messages.size() == 0) { 
             prof.tock("total time");
             continue;        // no received messages
-        }            
+        }
         if(input_messages.size() > 1){
             send_message = input_messages[input_messages.size()-1];
             // std::cout<<"send: too many messages";
         }
-        else
+        else {
             send_message = input_messages[0];
+        }
 
         send_message.t_stamp_ms = time_in_ms();
         send_message.cam_idx=myId;
@@ -68,13 +94,14 @@ void * Sender::send(void *n) {
             this->lw->write(send_message);
             prof.tock("write aggregate");
         }
+        MasaMessageOrig to_send = parse_MasaMessage_to_MasaMessageOrig(send_message);
         prof.tick("send messag");
         for (int i = 0; i < comm->size(); i++)
-                comm->at(i).send_message(&send_message, this->portList[i]);
+            comm->at(i).send_message(&to_send, this->portList[i]);
         input_messages.clear();
         prof.tock("send messag");
         prof.tock("total time");
-        prof.printStats();
+        //prof.printStats();
     }
     return (void *)NULL;
 }

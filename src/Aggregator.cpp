@@ -54,7 +54,7 @@ void * Aggregator::aggregate(void *n) {
         input_messages.clear();
         prof.tock("insert message ");
         prof.tock("total time");
-        prof.printStats();
+        //prof.printStats();
     }
     return (void *)NULL;
 }
