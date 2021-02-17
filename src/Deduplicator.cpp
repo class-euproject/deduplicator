@@ -352,8 +352,10 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
                     objects_to_track.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
                 }
             }
+        //if the current message is coming from a any other source, its objects are already tracked
         } else {
-            output_message.objects.push_back(m.objects.at(i));  
+            for(size_t j = 1; j < m.objects.size(); j++) 
+                output_message.objects.push_back(m.objects.at(i));  
         }
 
         for(size_t j = 0; j < m.lights.size(); j++)
