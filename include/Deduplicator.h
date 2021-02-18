@@ -25,8 +25,10 @@ struct DDstruct{
     size_t object_index;
 };
 
-bool operator==( DDstruct const& lhs, DDstruct const& rhs) { return lhs.rs.latitude == rhs.rs.longitude and lhs.rs.precision == rhs.rs.precision and 
-                                                                 lhs.rs.category == rhs.rs.category and lhs.rs.speed == rhs.rs.speed and lhs.rs.orientation == rhs.rs.orientation and lhs.distance == rhs.distance and lhs.message_index == rhs.message_index and lhs.object_index == rhs.object_index; }
+bool operator==( DDstruct const& lhs, DDstruct const& rhs) { return lhs.rs.latitude == rhs.rs.longitude      and lhs.rs.error == rhs.rs.error and 
+                                                                    lhs.rs.category == rhs.rs.category       and lhs.rs.speed == rhs.rs.speed and 
+                                                                    lhs.rs.orientation == rhs.rs.orientation and lhs.distance == rhs.distance and 
+                                                                    lhs.message_index == rhs.message_index   and lhs.object_index == rhs.object_index;}
     
 class Deduplicator {
 private:

@@ -16,7 +16,7 @@ void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers,
             RoadUser r;
             r.latitude = static_cast<float>(lat);
             r.longitude = static_cast<float>(lon); 
-            r.precision = 0.0;
+            r.error = 0.0;
             r.speed = velocity;
             r.orientation = orientation;
             r.category = cat;
@@ -123,7 +123,6 @@ double weightedAverage(std::vector<double>& weights, std::vector<double>& values
 /**
  * Compute the average between angles. Method taken by https://www.themathdoctors.org/averaging-angles/
  * BE CAREFUL TO THE RANGE OF INPUT ANGLES! THIS SHOULD BE BETWEEN +PI/2 AND -PI/2
- * 
 */
 double angleAverage(std::vector<double>& orientation_vector){
 
@@ -151,11 +150,11 @@ void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::ve
         RoadUser object = input_messages.at(message_index).objects.at(object_index);
 
         //Take into account only error > 0 because if the error is exactly 0 the object is too far away from the camera
-        if (object.precision > 0){
+        if (object.error > 0){
 
             latitude_vector.push_back(object.latitude);
             longitude_vector.push_back(object.longitude);
-            error_vector.push_back(object.precision);
+            error_vector.push_back(object.error);
             speed_vector.push_back(uint8_to_speed(object.speed));
             orientation_vector.push_back(uint16_to_yaw(object.orientation));
         }
@@ -350,6 +349,9 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
                     double north, east, up;
                     this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
                     objects_to_track.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
+                //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it 
+                } else {
+                    output_message.objects.push_back(m.objects.at(i));  
                 }
             }
         //if the current message is coming from a any other source, its objects are already tracked
@@ -368,7 +370,7 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
         this->t->track(objects_to_track, this->trVerbose);
         create_message_from_tracker(t->getTrackers(), &output_message, this->gc, this->adfGeoTransform);
     }
-
+    std::cout << "Numero di oggetti nel messaggio: " << output_message.objects.size() << std::endl;
     output_message.num_objects = output_message.objects.size();
 }
 

@@ -162,11 +162,11 @@ void prepare_message(MasaMessage *m, int idx)
     m->num_objects = 5;
 
     m->objects.clear();
-    RoadUser r1{std::vector<int> {idx}, .3f,.4f,0,std::vector<int>{1},C_car};
-    RoadUser r2{std::vector<int> {idx}, .5f,.6f,1,std::vector<int>{2},C_bus};
-    RoadUser r3{std::vector<int> {idx}, .7f,.8f,2,std::vector<int>{3},C_bycicle};
-    RoadUser r4{std::vector<int> {idx}, .9f,.10f,3,std::vector<int>{4},C_motorbike};
-    RoadUser r5{std::vector<int> {idx}, .11f,.12f,4,std::vector<int>{5},C_person};
+    RoadUser r1{std::vector<uint32_t> {(uint32_t) idx}, .3f,.4f,0,std::vector<uint32_t>{1},C_car};
+    RoadUser r2{std::vector<uint32_t> {(uint32_t) idx}, .5f,.6f,1,std::vector<uint32_t>{2},C_bus};
+    RoadUser r3{std::vector<uint32_t> {(uint32_t) idx}, .7f,.8f,2,std::vector<uint32_t>{3},C_bycicle};
+    RoadUser r4{std::vector<uint32_t> {(uint32_t) idx}, .9f,.10f,3,std::vector<uint32_t>{4},C_motorbike};
+    RoadUser r5{std::vector<uint32_t> {(uint32_t) idx}, .11f,.12f,4,std::vector<uint32_t>{5},C_person};
     m->objects.push_back(r1);
     m->objects.push_back(r2);
     m->objects.push_back(r3);
