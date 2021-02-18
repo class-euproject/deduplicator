@@ -246,7 +246,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
             /*since this loop look for nearest objects in all other messages, we can assume that if an object have multiple ids in cam_id 
             (or object_id, it's the same) it's a duplicated from another object already processed. Therefore we can just skip it.*/
-            if(input_messages.at(i).objects.at(j).camera_id.size() > 1){
+            if(input_messages.at(i).objects.at(j).camera_id.size() == 1){
                 //set the appropriate threshold geven the category of the object
                 float threshold;
                 switch (input_messages.at(i).objects.at(j).category)
@@ -290,7 +290,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 
                 //if other objects near the reference are found 
                 if(nearest.size() != 1){
-                    //update objects info with the average between all the duplicated objects.
+                    //update objects info with the weighted average between all the duplicated objects.
                     computeMeanOfDuplicatedObjects(nearest, input_messages);
 
                     //update cam_id and object_id in input_messages
@@ -341,7 +341,7 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
         //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
         if( m.objects.at(0).category == C_marelli1 || 
             m.objects.at(0).category == C_marelli2 || 
-            m.objects.at(0).category == C_levante || 
+            m.objects.at(0).category == C_levante  || 
             m.objects.at(0).category == C_rover) {
             for(size_t j = 1; j < m.objects.size(); j++) {
                 //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
@@ -409,10 +409,12 @@ void Deduplicator::showUpdates() {
 */
 void * Deduplicator::deduplicate(void *n) {
     std::vector<MasaMessage> input_messages;
+    std::map<std::pair<uint32_t, uint32_t>, RoadUser> last_duplicated_objects;
     std::vector<MasaMessage> tmp;
     MasaMessage deduplicate_message;
     std::vector<cv::Point2f> map_pixels;
     fog::Profiler prof("Deduplicator");
+
    while(gRun){
         /* Delay is necessary. If the Deduplicator takes messages too quickly there is a risk 
         of not tracking the road users correctly. each message is read as a frame. 
@@ -449,4 +451,4 @@ void * Deduplicator::deduplicate(void *n) {
 
     return (void *)NULL;
 }
-}
+} //namespace fog
