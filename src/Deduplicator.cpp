@@ -365,9 +365,7 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
 
     //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
     std::vector<tracking::obj_m> objects_to_track;
-    std::cout << "BEFORE FOR" << std::flush << std::endl;
     for(size_t i = 0; i < input_messages.size(); i++) {
-        std::cout << "I AM AT ITER " << i << std::flush << std::endl;
         MasaMessage& m = input_messages.at(i);
         //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
         if( m.objects.at(0).category == C_marelli1 || 
@@ -395,7 +393,7 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
 
     //if some object need to be tracked, track it
     std::cout << "OUTSIDE IF BEFORE TRACK" << std::flush << std::endl;
-    if(objects_to_track.size() > 0){
+    if(objects_to_track.size() > 0){ // just objects coming from smart cars
         std::cout << "INSIDE IF BEFORE TRACK" << std::flush << std::endl;
         this->t->track(objects_to_track, this->trVerbose);
         std::cout << "INSIDE IF AFTER TRACK" << std::flush << std::endl;

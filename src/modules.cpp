@@ -53,9 +53,6 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
             // deduplicator.create_message_from_tracker(tracker_list, &message);
             // info is a tuple of <lat (float), lon (float), category (int), velocity (uint8_t), yaw (uint8_t)>
             // RoadUser receives as params: <lat, lon, vel, yaw, cat>
-            /*RoadUser r{static_cast<float>(std::get<0>(info)), static_cast<float>(std::get<1>(info)),
-                       static_cast<uint8_t>(std::get<3>(info)), std::get<4>(info),
-                       static_cast<Categories>(std::get<2>(info)), static_cast<int>(idx),  static_cast<int>(idy)};*/
             RoadUser r;
             r.latitude = static_cast<float>(std::get<0>(info));
             r.longitude = static_cast<float>(std::get<1>(info));
@@ -65,8 +62,8 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
             r.category = static_cast<Categories>(std::get<2>(info));
             r.camera_id.push_back(cam_ids[idx]); // camera id
             r.object_id.push_back(std::get<5>(info)); // tracker id
-            /*r.idx = idx;
-            r.idy = idy;*/
+            r.idx = idx;
+            r.idy = idy;
             // TODO: check what values should be placed in r.camera_id (vector<int>)
 
             // TODO: check if correct
@@ -115,24 +112,18 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
             info(return_message.num_objects);
     std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
     for (const RoadUser ru : return_message.objects) {
-        /*lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
+        lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
         lon = std::get<1>(input_deduplicator[ru.idx][ru.idy]);
         pixel_x = std::get<6>(input_deduplicator[ru.idx][ru.idy]);
         pixel_y = std::get<7>(input_deduplicator[ru.idx][ru.idy]);
         pixel_w = std::get<8>(input_deduplicator[ru.idx][ru.idy]);
-        pixel_h = std::get<9>(input_deduplicator[ru.idx][ru.idy]);*/
+        pixel_h = std::get<9>(input_deduplicator[ru.idx][ru.idy]);
         vel = deduplicator.uint8_to_speed(ru.speed);
         yaw = deduplicator.uint16_to_yaw(ru.orientation);
         // TODO: this -> info[i++] = std::make_tuple(ru.camera_id, ru.object_id, int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
         // TODO:     OR just first camera id and object id (instead of whole vectors)
-        if (ru.camera_id.size() == 0) {
-            std::cout << "CAMERA IDS LIST IS EMPTY" << std::flush << std::endl;
-        }
-        if (ru.object_id.size() == 0) {
-            std::cout << "OBJECT IDS LIST IS EMPTY" << std::flush << std::endl;
-        }
         info[i++] = std::make_tuple(ru.camera_id.at(0), ru.object_id.at(0), int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
-                                    pixel_w, pixel_h);
+                                    pixel_w, pixel_h); // TODO: or should we return entire vectors camera_id and object_id?
 
     }
     std::cout << "After creating info" << std::endl;
