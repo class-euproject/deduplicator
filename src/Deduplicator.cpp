@@ -246,7 +246,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
             /*since this loop look for nearest objects in all other messages, we can assume that if an object have multiple ids in cam_id 
             (or object_id, it's the same) it's a duplicated from another object already processed. Therefore we can just skip it.*/
-            if(input_messages.at(i).objects.at(j).camera_id.size() == 1){
+            if(input_messages.at(i).objects.at(j).camera_id.size() > 1){
                 //set the appropriate threshold geven the category of the object
                 float threshold;
                 switch (input_messages.at(i).objects.at(j).category)
@@ -370,7 +370,6 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
         this->t->track(objects_to_track, this->trVerbose);
         create_message_from_tracker(t->getTrackers(), &output_message, this->gc, this->adfGeoTransform);
     }
-    std::cout << "Numero di oggetti nel messaggio: " << output_message.objects.size() << std::endl;
     output_message.num_objects = output_message.objects.size();
 }
 
