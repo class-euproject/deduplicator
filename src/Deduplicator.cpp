@@ -94,7 +94,7 @@ std::vector<MasaMessage> Deduplicator::filterOldMessages(std::vector<MasaMessage
 /** from float to uint8 the conversion is uint8_t(std::abs(vel * 3.6 * 2)), so this is the opposite*/
 double uint8_to_speed(const uint8_t speed){ return static_cast<double>(speed)/7.2;}
 
-/** This should calculate the opposite of orientation = uint8_t((int((yaw * 57.29 + 360)) % 360) * 17 / 24). 
+/** This should calculate the opposite of uint8_t((int((yaw * 57.29 + 360)) % 360) * 17 / 24). 
  * The output is in radiants
 */
 double uint16_to_yaw(const uint16_t yaw){ 
@@ -121,18 +121,35 @@ double weightedAverage(std::vector<double>& weights, std::vector<double>& values
 }
 
 /**
- * Compute the average between angles. Method taken by https://www.themathdoctors.org/averaging-angles/
- * BE CAREFUL TO THE RANGE OF INPUT ANGLES! THIS SHOULD BE BETWEEN +PI/2 AND -PI/2
+ * Compute the average between angles. Method taken by https://en.wikipedia.org/wiki/Mean_of_circular_quantities#Example
+ * and https://rosettacode.org/wiki/Averages/Mean_angle#C.2B.2B
 */
 double angleAverage(std::vector<double>& orientation_vector){
 
-    double sin, cos, sum_of_sin = 0.0, sum_of_cos = 0.0, average = 0.0;
+    double sin, cos, sum_of_sin = 0.0, sum_of_cos = 0.0;
     for(auto elem : orientation_vector){
         sincos(elem, &sin, &cos);
         sum_of_sin += sin;
         sum_of_cos += cos;
     }
-    return atan2(sum_of_cos, sum_of_sin);
+
+    double meanSin = sum_of_sin/orientation_vector.size();
+    double meanCos = sum_of_cos/orientation_vector.size();
+
+    if(meanSin > 0 and meanCos > 0){
+        return atan(meanSin/meanCos);
+    } else if(meanCos < 0){
+        return atan(meanSin/meanCos) + M_PI;
+    } else if(meanSin < 0 and meanCos > 0){
+        return atan(meanSin/meanCos) + 2*M_PI;
+    } else { return 0.0; }
+}
+
+/**
+ * Print a RoadUser
+*/
+void printObject(RoadUser& ru){
+    std::cout << std::setprecision(10) << "\t" << ru.latitude << "\t"  << ru.longitude << "\t" << (int) ru.speed << "\t" << (int) ru.orientation << "\t" << ru.error << std::endl;
 }
 
 /**
@@ -142,6 +159,7 @@ void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::ve
 
     std::vector<double> latitude_vector, longitude_vector, error_vector, speed_vector, orientation_vector;
     double avg_latitude, avg_longitude, avg_speed, avg_orientation;
+    std::vector<double> weights, speed_weights;
 
     //retrieval of all data for average computation (skipping the 0-error ones)
     for(size_t i = 0; i < nearest.size(); i++){
@@ -154,38 +172,58 @@ void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::ve
 
             latitude_vector.push_back(object.latitude);
             longitude_vector.push_back(object.longitude);
-            error_vector.push_back(object.error);
-            speed_vector.push_back(uint8_to_speed(object.speed));
-            orientation_vector.push_back(uint16_to_yaw(object.orientation));
+            weights.push_back(1.0/object.error);
+            if(object.speed > 0 and object.orientation > 0){
+                speed_vector.push_back(uint8_to_speed(object.speed));
+                speed_weights.push_back(1.0/object.error);
+                orientation_vector.push_back(uint16_to_yaw(object.orientation));
+            } else if(object.orientation > 0 and object.speed == 0){
+                orientation_vector.push_back(uint16_to_yaw(object.orientation));
+            } else if(object.speed > 0 and object.orientation == 0){
+                speed_vector.push_back(uint16_to_yaw(object.orientation));
+                speed_weights.push_back(1.0/object.error);
+            }
         }
     }
 
-    //if 2 or more data are available compute the average
+    //if 2 or more data are available compute the average of lat/lon
     if(latitude_vector.size() > 1){
-        std::vector<double> weights;
-        //hyperbolic weights. Other conversion can be considered (linear, quadratic...)
-        for(auto elem: error_vector){
-            weights.push_back(1.0/elem);
-        }
-
         avg_latitude = weightedAverage(weights, latitude_vector);
         avg_longitude = weightedAverage(weights, longitude_vector);
-        avg_speed = weightedAverage(weights, speed_vector);
-        avg_orientation = angleAverage(orientation_vector);
-
     //otherwise the average of each value is the one available
     } else {
-
         avg_latitude = latitude_vector.at(0);
         avg_longitude = longitude_vector.at(0);
-        avg_speed = speed_vector.at(0);
-        avg_orientation = orientation_vector.at(0);
     }
+
+    //speed and orientation vectors are a little bit fragile: it could be we don't have valid data to compute their average
+    //(this is due to the fact that the tracker needs a few frames to be able to make an accurate estimation of those values)
+    if(speed_vector.size() > 0){
+        //if 2 or more data are available compute the average of speed
+        if(speed_vector.size() > 1){
+            avg_speed = weightedAverage(speed_weights, speed_vector);
+        //otherwise the average of each value is the one available
+        } else {
+            avg_speed = speed_vector.at(0);
+        }
+    } else { avg_speed = 0.0; }
+
+
+    if(orientation_vector.size() > 0){
+        //if 2 or more data are available compute the average of the orientation
+        if(orientation_vector.size() > 1){
+            avg_orientation = angleAverage(orientation_vector);
+        //otherwise the average of each value is the one available
+        } else {
+            avg_orientation = orientation_vector.at(0);
+        }
+    } else { avg_orientation = 0.0; }
 
     //overwrite the computed values into the input messages
     for(size_t i = 0; i < nearest.size(); i++){
         size_t message_index = nearest.at(i).message_index;
         size_t object_index = nearest.at(i).object_index;
+
         input_messages.at(message_index).objects.at(object_index).latitude = avg_latitude;
         input_messages.at(message_index).objects.at(object_index).longitude = avg_longitude;
         input_messages.at(message_index).objects.at(object_index).speed = speed_to_uint8(avg_speed);
@@ -215,19 +253,22 @@ bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, con
     bool found_something = false;
     for(size_t i = 0; i < message.objects.size(); i++){
 
-        //For a camera, our smart vehicles are treated as a car
-        if(ref.rs.category == message.objects.at(i).category || 
-           ref.rs.category == Categories::C_car and message.objects.at(i).category >= Categories::C_marelli1 ||
-           ref.rs.category >= Categories::C_marelli1 and message.objects.at(i).category == Categories::C_car ){
-            float distance = this->distance(message.objects.at(i), ref.rs);
-            if(distance < threshold){
-                if(found_something == false or nearest.distance > distance){
-                    nearest.rs = message.objects.at(i);
-                    nearest.distance = distance;
-                    nearest.object_index = i;
-                    ris = nearest;
-                    found_something = true;
-                } 
+        //if the object is not a duplicated of another object
+        if(message.objects.at(i).camera_id.size() == 1){
+            //For a camera, our smart vehicles are treated as a car
+            if(ref.rs.category == message.objects.at(i).category || 
+            ref.rs.category == Categories::C_car and message.objects.at(i).category >= Categories::C_marelli1 ||
+            ref.rs.category >= Categories::C_marelli1 and message.objects.at(i).category == Categories::C_car ){
+                float distance = this->distance(message.objects.at(i), ref.rs);
+                if(distance < threshold){
+                    if(found_something == false or nearest.distance > distance){
+                        nearest.rs = message.objects.at(i);
+                        nearest.distance = distance;
+                        nearest.object_index = i;
+                        ris = nearest;
+                        found_something = true;
+                    } 
+                }
             }
         }
     }
@@ -300,19 +341,32 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                         int object_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(0);
  
                         for(size_t y = 0; y < x; y++){
-                            input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
-                            input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
+                            input_messages[nearest.at(y).message_index].objects[nearest.at(y).object_index].camera_id.push_back(cam_id);
+                            input_messages[nearest.at(y).message_index].objects[nearest.at(y).object_index].object_id.push_back(object_id);
                         }
 
                         for(size_t y = x+1; y < nearest.size(); y++){
-                            input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
-                            input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
+                            input_messages[nearest.at(y).message_index].objects[nearest.at(y).object_index].camera_id.push_back(cam_id);
+                            input_messages[nearest.at(y).message_index].objects[nearest.at(y).object_index].object_id.push_back(object_id);
                         }
                     }
                 }
             }
         }
     }
+}
+
+void countDeduplicatedObjects(std::vector<MasaMessage> &input_messages){
+
+    int counter = 0;
+    for(size_t i = 0; i < input_messages.size(); i++) {
+        for(size_t j = 1; j < input_messages.at(i).objects.size(); j++) {
+            if(input_messages.at(i).objects.at(j).camera_id.size() > 1 ) 
+                counter++; 
+        }
+    }
+    if(counter > 0)
+        std::cout << std::endl << "Duplicated objects: " << counter << " with " << input_messages.size() << " input messages" << std::endl << std::endl;
 }
 
 /**
@@ -322,47 +376,47 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
  * - for smart vehicles, track their objects
  * - output: a single MasaMessage with the aggregation of all above procedures
 */
-void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, MasaMessage &output_message) {
-
-    //i veicoli smart non devono essere "deduplicati". gli vanno aggiunti gli id nel caso sia detectata da una telecamera.
-    //id quattroporte/levante anche come id 
+void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, MasaMessage &output_message) {
+ 
     output_message.lights.clear(); 
     output_message.objects.clear();
     output_message.t_stamp_ms = time_in_ms();
 
     //Standard deduplication method
-    if(input_messages.size() > 1)
+    if(input_messages.size() > 1){
         deduplicationFromMessages(input_messages);
+        //countDeduplicatedObjects(input_messages);
+    }
 
     //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
     std::vector<tracking::obj_m> objects_to_track;
     for(size_t i = 0; i < input_messages.size(); i++) {
-        MasaMessage& m = input_messages.at(i);
         //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
-        if( m.objects.at(0).category == C_marelli1 || 
-            m.objects.at(0).category == C_marelli2 || 
-            m.objects.at(0).category == C_levante  || 
-            m.objects.at(0).category == C_rover) {
-            for(size_t j = 1; j < m.objects.size(); j++) {
+        if( input_messages.at(i).objects.at(0).category == C_marelli1 || 
+            input_messages.at(i).objects.at(0).category == C_marelli2 || 
+            input_messages.at(i).objects.at(0).category == C_levante  || 
+            input_messages.at(i).objects.at(0).category == C_rover    ){
+            //The smart vehicle does not need to be tracked so it can immediately be pushed in output messages
+            output_message.objects.push_back(input_messages.at(i).objects.at(0));
+            for(size_t j = 1; j < input_messages.at(i).objects.size(); j++) {
                 //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
-                if(m.objects.at(j).object_id.size() <= 1){
+                if(input_messages.at(i).objects.at(j).object_id.size() <= 1){
                     double north, east, up;
-                    this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
-                    objects_to_track.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
+                    this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
+                    objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1));
                 //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it 
                 } else {
-                    output_message.objects.push_back(m.objects.at(i));  
+                    output_message.objects.push_back(input_messages.at(i).objects.at(j));  
                 }
             }
         //if the current message is coming from a any other source, its objects are already tracked
         } else {
-            for(size_t j = 1; j < m.objects.size(); j++) 
-                output_message.objects.push_back(m.objects.at(i));  
+            for(size_t j = 0; j < input_messages.at(i).objects.size(); j++)
+                output_message.objects.push_back(input_messages.at(i).objects.at(j)); 
         }
 
-        for(size_t j = 0; j < m.lights.size(); j++)
-            output_message.lights.push_back(m.lights.at(j)); 
-        
+        for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
+            output_message.lights.push_back(input_messages.at(i).lights.at(j)); 
     }
 
     //if some object need to be tracked, track it
@@ -420,7 +474,7 @@ void * Deduplicator::deduplicate(void *n) {
         of not tracking the road users correctly. each message is read as a frame. 
         See the initialAge variable. */
         prof.tick("total time");
-        // std::this_thread::sleep_for(std::chrono::milliseconds(30));        
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));        
         prof.tick("get messages");
         input_messages = this->inCm->getMessages();
         prof.tock("get messages");

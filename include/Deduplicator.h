@@ -60,7 +60,7 @@ public:
     void start();
     void end();
     std::vector<MasaMessage> filterOldMessages(std::vector<MasaMessage> input_messages);
-    void elaborateMessages(std::vector<MasaMessage> input_messages, 
+    void elaborateMessages(std::vector<MasaMessage>& input_messages, 
                               MasaMessage &output_message);
     void showUpdates();
     void *deduplicate(void *n);
