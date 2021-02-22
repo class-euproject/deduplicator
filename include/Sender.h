@@ -24,7 +24,7 @@ private:
     std::vector<int> portList;
     std::vector<int> socketDescList;
     int numComm;
-    std::vector<Communicator<MasaMessageOrig>> *comm;
+    std::vector<Communicator<MasaMessage>> *comm;
     LogWriter *lw;
     bool lw_flag;
     pthread_t writerThread;

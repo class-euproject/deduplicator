@@ -16,7 +16,7 @@ void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers,
             RoadUser r;
             r.latitude = static_cast<float>(lat);
             r.longitude = static_cast<float>(lon); 
-            r.precision = 0.0;
+            r.error = 0.0;
             r.speed = velocity;
             r.orientation = orientation;
             r.category = cat;
@@ -170,29 +170,37 @@ void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::ve
     double avg_latitude, avg_longitude, avg_speed, avg_orientation;
 
     //retrieval of all data for average computation (skipping the 0-error ones)
+    // std::cout << "BEFORE FOR in computeMeanOfDuplicatedObjects" << std::endl;
     for(size_t i = 0; i < nearest.size(); i++){
+        std::cout << "INSIDE FOR in computeMeanOfDuplicatedObjects" << std::endl;
         size_t message_index = nearest.at(i).message_index;
         size_t object_index = nearest.at(i).object_index;
         RoadUser object = input_messages.at(message_index).objects.at(object_index);
 
         //Take into account only error > 0 because if the error is exactly 0 the object is too far away from the camera
-        if (object.precision > 0){
+        // std::cout << "BEFORE IF in computeMeanOfDuplicatedObjects" << std::endl;
+        if (object.error > 0){
+            // std::cout << "INSIDE IF in computeMeanOfDuplicatedObjects" << std::endl;
 
             latitude_vector.push_back(object.latitude);
             longitude_vector.push_back(object.longitude);
-            error_vector.push_back(object.precision);
+            error_vector.push_back(object.error);
             speed_vector.push_back(uint8_to_speed(object.speed));
             orientation_vector.push_back(uint16_to_yaw(object.orientation));
         }
+        // std::cout << "AFTER IF in computeMeanOfDuplicatedObjects" << std::endl;
     }
+    // std::cout << "AFTER FOR in computeMeanOfDuplicatedObjects" << std::endl;
 
     //if 2 or more data are available compute the average
     if(latitude_vector.size() > 1){
+        // std::cout << "INSIDE SECOND IF in computeMeanOfDuplicatedObjects" << std::endl;
         std::vector<double> weights;
         //hyperbolic weights. Other conversion can be considered (linear, quadratic...)
         for(auto elem: error_vector){
             weights.push_back(1.0/elem);
         }
+        // std::cout << "AFTER SECOND FOR in computeMeanOfDuplicatedObjects" << std::endl;
 
         avg_latitude = weightedAverage(weights, latitude_vector);
         avg_longitude = weightedAverage(weights, longitude_vector);
@@ -201,12 +209,14 @@ void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::ve
 
     //otherwise the average of each value is the one available
     } else {
+        std::cout << "INSIDE ELSE in computeMeanOfDuplicatedObjects" << std::endl;
 
         avg_latitude = latitude_vector.at(0);
         avg_longitude = longitude_vector.at(0);
         avg_speed = speed_vector.at(0);
         avg_orientation = orientation_vector.at(0);
     }
+    // std::cout << "AFTER ELSE in computeMeanOfDuplicatedObjects" << std::endl;
 
     //overwrite the computed values into the input messages
     for(size_t i = 0; i < nearest.size(); i++){
@@ -217,6 +227,7 @@ void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::ve
         input_messages.at(message_index).objects.at(object_index).speed = speed_to_uint8(avg_speed);
         input_messages.at(message_index).objects.at(object_index).orientation = orientation_to_uint8(avg_orientation);
     }
+    // std::cout << "AFTER LAST FOR in computeMeanOfDuplicatedObjects" << std::endl;
 
     return;
 }
@@ -268,11 +279,15 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     const float CAR_THRESHOLD = 1.5;  //multiple deduplication threshold for different road users
     const float PERSON_THRESHOLD = 0.5;
 
+    // std::cout << "BEFORE FOR INSIDE deduplicationFromMessages" << std::endl;
     for(size_t i = 0; i < input_messages.size(); i++){
+        // std::cout << "INSIDE FIRST FOR INSIDE deduplicationFromMessages" << std::endl;
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
+            // std::cout << "INSIDE SECOND FOR INSIDE deduplicationFromMessages" << std::endl;
             /*since this loop look for nearest objects in all other messages, we can assume that if an object have multiple ids in cam_id 
             (or object_id, it's the same) it's a duplicated from another object already processed. Therefore we can just skip it.*/
-            if(input_messages.at(i).objects.at(j).camera_id.size() == 1){
+            if(input_messages.at(i).objects.at(j).camera_id.size() > 1){
+                // std::cout << "INSIDE IF INSIDE deduplicationFromMessages" << std::endl;
                 //set the appropriate threshold geven the category of the object
                 float threshold;
                 switch (input_messages.at(i).objects.at(j).category)
@@ -287,6 +302,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                     threshold = CAR_THRESHOLD;
                     break;
                 }
+                // std::cout << "AFTER SWITCH INSIDE deduplicationFromMessages" << std::endl;
 
                 //find the nearest object in each message
                 std::vector<DDstruct> nearest;
@@ -297,43 +313,58 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
                 ref.distance = 0.0;
                 nearest.push_back(ref);
                 size_t k = 0;
-                for(; k < i; k++){ 
+                // std::cout << "BEFORE THIRD FOR INSIDE deduplicationFromMessages" << std::endl;
+                for(; k < i; k++){
+                    // std::cout << "INSIDE THIRD FOR INSIDE deduplicationFromMessages" << std::endl;
                     DDstruct nearest_obj;
                     if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
                         nearest_obj.message_index = k;
                         nearest.push_back(nearest_obj);
                     }
                 }
+                // std::cout << "AFTER THIRD FOR INSIDE deduplicationFromMessages" << std::endl;
 
                 k = i+1;
+                // std::cout << "BEFORE FOURTH FOR INSIDE deduplicationFromMessages" << std::endl;
                 for(; k < input_messages.size(); k++){
+                    // std::cout << "INSIDE FOURTH FOR INSIDE deduplicationFromMessages" << std::endl;
                     DDstruct nearest_obj;
                     if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
                         nearest_obj.message_index = k;
                         nearest.push_back(nearest_obj);
                     }
                 }
+                // std::cout << "AFTER FOURTH FOR INSIDE deduplicationFromMessages" << std::endl;
 
-                //if other objects near the reference are found 
+                //if other objects near the reference are found
+                // std::cout << "BEFORE SECOND IF INSIDE deduplicationFromMessages" << std::endl;
                 if(nearest.size() != 1){
+                    // std::cout << "INSIDE SECOND IF INSIDE deduplicationFromMessages" << std::endl;
                     //update objects info with the average between all the duplicated objects.
-                    computeMeanOfDuplicatedObjects(nearest, input_messages);
+                    computeMeanOfDuplicatedObjects(nearest, input_messages); // TODO: PETAVA AQUI IF PRECISION == 0.0
 
                     //update cam_id and object_id in input_messages
+                    // std::cout << "BEFORE FIFTH FOR INSIDE deduplicationFromMessages" << std::endl;
                     for(size_t x = 0; x < nearest.size(); x++){
+                        // std::cout << "INSIDE FIFTH FOR INSIDE deduplicationFromMessages" << std::endl;
 
                         int cam_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(0);
                         int object_id = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(0);
- 
+
+                        // std::cout << "BEFORE SIXTH FOR INSIDE deduplicationFromMessages" << std::endl;
                         for(size_t y = 0; y < x; y++){
+                            // std::cout << "INSIDE SIXTH FOR INSIDE deduplicationFromMessages" << std::endl;
                             input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
                             input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
                         }
+                        // std::cout << "AFTER SIXTH FOR INSIDE deduplicationFromMessages" << std::endl;
 
                         for(size_t y = x+1; y < nearest.size(); y++){
+                            // std::cout << "INSIDE SEVENTH FOR INSIDE deduplicationFromMessages" << std::endl;
                             input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).camera_id.push_back(cam_id);
                             input_messages.at(nearest.at(y).message_index).objects.at(nearest.at(y).object_index).object_id.push_back(object_id);
                         }
+                        // std::cout << "AFTER SEVENTH FOR INSIDE deduplicationFromMessages" << std::endl;
                     }
                 }
             }
@@ -379,9 +410,12 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
                     this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
                     objects_to_track.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
                 }
+                //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it
+                else {
+                    output_message.objects.push_back(m.objects.at(i));
+                }
             }
         } else {
-            // TODO: for needed to append all objects inside message, not just one as done here
             for (size_t j = 0; j < m.objects.size(); j++)
                 output_message.objects.push_back(m.objects.at(j));
         }

@@ -56,7 +56,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
             RoadUser r;
             r.latitude = static_cast<float>(std::get<0>(info));
             r.longitude = static_cast<float>(std::get<1>(info));
-            r.precision = 0.0;
+            r.error = 1.0; //0.0;
             r.speed = std::get<3>(info);
             r.orientation = std::get<4>(info);
             r.category = static_cast<Categories>(std::get<2>(info));
@@ -68,7 +68,6 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
 
             // TODO: check if correct
             // TODO: message.t_stamp_ms = timestamps[idx];
-            // TODO: message.cam_idx = cam_ids[idx];
             message.objects.push_back(r);
             idy++;
         }

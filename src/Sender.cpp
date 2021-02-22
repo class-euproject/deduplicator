@@ -16,9 +16,9 @@ Sender::Sender(ClassAggregatorMessage &sharedMessage,
     lw_flag = logWriterFlag;
     lw = new LogWriter("../demo/data/class_aggregate_log/");
 
-    comm = new std::vector<Communicator<MasaMessageOrig>>(SOCK_DGRAM); //MasaMessageOrig
+    comm = new std::vector<Communicator<MasaMessage>>(SOCK_DGRAM);
     for(int i = 0; i<numComm; i++) {
-        Communicator<MasaMessageOrig> p; //MasaMessageOrig
+        Communicator<MasaMessage> p; //MasaMessageOrig
         comm->push_back(p);
         comm->at(i).open_client_socket((char *)ipList[i].c_str(), portList[i]);
         socketDescList.push_back(comm->at(i).get_socket());
@@ -39,7 +39,7 @@ void Sender::end() {
     pthread_join(writerThread, NULL);
 }
 
-MasaMessageOrig parse_MasaMessage_to_MasaMessageOrig(const MasaMessage message){
+/*MasaMessageOrig parse_MasaMessage_to_MasaMessageOrig(const MasaMessage message){
 
     MasaMessageOrig res;
     for(auto obj : message.objects){
@@ -62,7 +62,7 @@ MasaMessageOrig parse_MasaMessage_to_MasaMessageOrig(const MasaMessage message){
     res.cam_idx = message.cam_idx;
 
     return res;
-}
+}*/
 
 void * Sender::send(void *n) {
     std::vector<MasaMessage> input_messages; //but it must contain only one message.
@@ -94,10 +94,9 @@ void * Sender::send(void *n) {
             this->lw->write(send_message);
             prof.tock("write aggregate");
         }
-        MasaMessageOrig to_send = parse_MasaMessage_to_MasaMessageOrig(send_message);
         prof.tick("send messag");
         for (int i = 0; i < comm->size(); i++)
-            comm->at(i).send_message(&to_send, this->portList[i]);
+            comm->at(i).send_message(&send_message, this->portList[i]);
         input_messages.clear();
         prof.tock("send messag");
         prof.tock("total time");
