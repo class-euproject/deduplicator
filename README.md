@@ -1,14 +1,13 @@
 # class-aggregator
 
+This branch has been developed by BSC based from the source code found in the master branch and provided by Università di Modena e Reggio Emilia. The code has been slightly modified in order to be adapted and integrated with the COMPSs workflow, and to do so, a binding between C++ and Python has been introduced in `src/modules.cpp`.
+
 class-aggregator provides the software to deduplicate and aggregate the edge information of a smart city in the context of the European Project CLASS (H2020, G.A. 780622)
 
 ## Dependencies
 
 This projects depends on: 
 
-  * CUDA 10.0
-  * CUDNN 7.603
-  * OPENCV 3.4
   * yaml-cpp 0.5.2 
   * Eigen
   * GDal
@@ -17,24 +16,13 @@ This projects depends on:
 sudo apt-get install -y libeigen3-dev \
                         python3-matplotlib \
                         python-dev \
+                        python3-dev \
                         libgdal-dev \
                         libcereal-dev \
                         libyaml-cpp-dev \
                         libpthread-stubs0-dev
 ```
 
-required for tkCommon
-```
-sudo apt-get install -y libgles2-mesa-dev libglew-dev libmatio-dev libpcap-dev
-bash scripts/install-glfw-3.3.sh
-```
-
-### Demo dependencies
-
-required for demo (downloads some data)
-```
-bash scripts/download_configuration_data.sh
-```
 
 ## How to initialize or update submodule
 
@@ -47,8 +35,8 @@ git submodule update --remote --recursive   # update all
 
 Build with cmake.
 ```
-git clone gitlab@git.hipert.unimore.it:dsapienza/class-aggregator.git
-cd class-aggregator
+git clone https://github.com/class-euproject/deduplicator.git -b bsc 
+cd deduplicator
 mkdir build
 cd build
 cmake ..

@@ -66,7 +66,6 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
             r.idy = idy;
             // TODO: check what values should be placed in r.camera_id (vector<int>)
 
-            // TODO: check if correct
             // TODO: message.t_stamp_ms = timestamps[idx];
             message.objects.push_back(r);
             idy++;
@@ -76,7 +75,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     }
     MasaMessage return_message;
     deduplicator.elaborateMessages(input_messages, return_message);
-    std::cout << "After deduplication" << std::endl;
+    // std::cout << "After deduplication" << std::endl;
     // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
     // tracker.predList[-1].yaw (float), tracker.traj[-1].x (double), tracker.traj[-1].y (double) (which can be directly
     // converted to lat, lon)
@@ -109,7 +108,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     // std::vector<std::tuple<std::vector<int>, std::vector<int>, int, double, double, double, double, int, int, int, int>>
     std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>
             info(return_message.num_objects);
-    std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
+    // std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
     for (const RoadUser ru : return_message.objects) {
         lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
         lon = std::get<1>(input_deduplicator[ru.idx][ru.idy]);
@@ -121,12 +120,13 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
         yaw = deduplicator.uint16_to_yaw(ru.orientation);
         // TODO: this -> info[i++] = std::make_tuple(ru.camera_id, ru.object_id, int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
         // TODO:     OR just first camera id and object id (instead of whole vectors)
-        info[i++] = std::make_tuple(ru.camera_id.at(0), ru.object_id.at(0), int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
-                                    pixel_w, pixel_h); // TODO: or should we return entire vectors camera_id and object_id?
+        info[i++] = std::make_tuple(ru.camera_id.at(0), ru.object_id.at(0), int(ru.category), vel, yaw, lat, lon,
+                                    pixel_x, pixel_y, pixel_w, pixel_h); // TODO: or should we return entire vectors
+                                    // TODO: camera_id and object_id?
 
     }
-    std::cout << "After creating info" << std::endl;
-    std::cout << "INFO SIZE IS " << info.size() << std::endl;
+    // std::cout << "After creating info" << std::endl;
+    // std::cout << "INFO SIZE IS " << info.size() << std::endl;
     return std::make_tuple(return_message.t_stamp_ms, info);
 }
 

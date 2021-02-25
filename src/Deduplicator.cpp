@@ -54,9 +54,9 @@ Deduplicator::Deduplicator(double* adfGeoTransform, const double latitude, const
     nStates = 5;
     dt = 0.03;
     trVerbose = false;
-    std::cout << "BEFORE T" << std::endl;
+    // std::cout << "BEFORE T" << std::endl;
     t = new tracking::Tracking(nStates, dt, initialAge);
-    std::cout << "AFTER T" << std::endl;
+    // std::cout << "AFTER T" << std::endl;
 }
 
 Deduplicator::~Deduplicator() {
@@ -172,7 +172,7 @@ void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::ve
     //retrieval of all data for average computation (skipping the 0-error ones)
     // std::cout << "BEFORE FOR in computeMeanOfDuplicatedObjects" << std::endl;
     for(size_t i = 0; i < nearest.size(); i++){
-        std::cout << "INSIDE FOR in computeMeanOfDuplicatedObjects" << std::endl;
+        // std::cout << "INSIDE FOR in computeMeanOfDuplicatedObjects" << std::endl;
         size_t message_index = nearest.at(i).message_index;
         size_t object_index = nearest.at(i).object_index;
         RoadUser object = input_messages.at(message_index).objects.at(object_index);
@@ -209,7 +209,7 @@ void computeMeanOfDuplicatedObjects(std::vector<fog::DDstruct> &nearest, std::ve
 
     //otherwise the average of each value is the one available
     } else {
-        std::cout << "INSIDE ELSE in computeMeanOfDuplicatedObjects" << std::endl;
+        // std::cout << "INSIDE ELSE in computeMeanOfDuplicatedObjects" << std::endl;
 
         avg_latitude = latitude_vector.at(0);
         avg_longitude = longitude_vector.at(0);
@@ -387,12 +387,12 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
     output_message.objects.clear();
     output_message.t_stamp_ms = time_in_ms();
 
-    std::cout << "BEFORE FILTER INPUT SIZE IS " << input_messages[0].objects.size() << std::flush << std::endl;
+    // std::cout << "BEFORE FILTER INPUT SIZE IS " << input_messages[0].objects.size() << std::flush << std::endl;
     //Standard deduplication method
     if(input_messages.size() > 1)
         deduplicationFromMessages(input_messages);
 
-    std::cout << "AFTER FILTER INPUT SIZE IS " << input_messages[0].objects.size() << std::flush << std::endl;
+    // std::cout << "AFTER FILTER INPUT SIZE IS " << input_messages[0].objects.size() << std::flush << std::endl;
 
     //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
     std::vector<tracking::obj_m> objects_to_track;
@@ -426,14 +426,14 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
     }
 
     //if some object need to be tracked, track it
-    std::cout << "OUTSIDE IF BEFORE TRACK" << std::flush << std::endl;
+    // std::cout << "OUTSIDE IF BEFORE TRACK" << std::flush << std::endl;
     if(objects_to_track.size() > 0){ // just objects coming from smart cars
-        std::cout << "INSIDE IF BEFORE TRACK" << std::flush << std::endl;
+        // std::cout << "INSIDE IF BEFORE TRACK" << std::flush << std::endl;
         this->t->track(objects_to_track, this->trVerbose);
-        std::cout << "INSIDE IF AFTER TRACK" << std::flush << std::endl;
+        // std::cout << "INSIDE IF AFTER TRACK" << std::flush << std::endl;
         create_message_from_tracker(t->getTrackers(), &output_message, this->gc, this->adfGeoTransform);
     }
-    std::cout << "OUTSIDE IF AFTER TRACK" << std::flush << std::endl;
+    // std::cout << "OUTSIDE IF AFTER TRACK" << std::flush << std::endl;
 
     output_message.num_objects = output_message.objects.size();
 }
