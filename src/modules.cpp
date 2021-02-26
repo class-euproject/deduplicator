@@ -50,7 +50,6 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
         MasaMessage message;
         idy = 0;
         for (auto info : vec_info) {
-            // deduplicator.create_message_from_tracker(tracker_list, &message);
             // info is a tuple of <lat (float), lon (float), category (int), velocity (uint8_t), yaw (uint8_t)>
             // RoadUser receives as params: <lat, lon, vel, yaw, cat>
             RoadUser r;
@@ -85,14 +84,10 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     double lat, lon, alt;
     float vel, yaw;
     int pixel_x, pixel_y, pixel_w, pixel_h;
-    // TODO: add new field idx to Tracker to point to the exact input message object in order to retrieve lat/lon &
-    //  avoid unneeded conversions
     /*for (const tracking::Tracker& tracker : deduplicator.t->getTrackers()) {
         vel = yaw = 0.0f;
-        // TODO: store XXX and YYY in RoadUser and tracker structure so it can be matched to initial position (also previous TODO)
         lat = std::get<0>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
         lon = std::get<1>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
-        // TODO: tracker.id from input_deduplicator or the one provided in tracker?
         pixel_x = std::get<6>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
         pixel_y = std::get<7>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
         pixel_w = std::get<8>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
