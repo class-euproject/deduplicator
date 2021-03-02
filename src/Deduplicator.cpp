@@ -158,9 +158,9 @@ void printObject(RoadUser& ru){
  * - for speed and yaw a conversion to double is needed, then the weighted average is computed
  * - if none of the objects have a defined precision, a standard mean is computed
 */
-RoadUser createAggregatedObject(std::vector<std::pair<uint32_t, uint32_t>>        &map_keys_of_current_object,
-                               std::pair<uint32_t, uint32_t>                     &key_to_keep,
-                               std::map<std::pair<uint32_t, uint32_t>, RoadUser> &current_message_map       ){
+RoadUser createAggregatedObject(std::vector<std::pair<uint16_t, uint16_t>>        &map_keys_of_current_object,
+                               std::pair<uint16_t, uint16_t>                      &key_to_keep,
+                               std::map<std::pair<uint16_t, uint16_t>, RoadUser>  &current_message_map      ){
 
     std::vector<double> latitude_vector, longitude_vector, error_vector, speed_vector, orientation_vector;
     double avg_latitude, avg_longitude, avg_speed, avg_orientation;
@@ -353,8 +353,8 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 
                         for(size_t y = 0; y < input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.size(); y++){
                         
-                            uint32_t cam_id_to_push = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(y);
-                            uint32_t object_id_to_push = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(y);
+                            uint16_t cam_id_to_push = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(y);
+                            uint16_t object_id_to_push = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(y);
     
                             for(size_t z = 0; z < nearest.size(); z++){
                                 if(z != x and std::find(input_messages.at(nearest.at(z).message_index).objects.at(nearest.at(z).object_index).camera_id.begin(),
@@ -372,14 +372,14 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     }
 }
 
-std::map<std::pair<uint32_t, uint32_t>, RoadUser> createMapMessage(std::vector<MasaMessage> &input_messages){
+std::map<std::pair<uint16_t, uint16_t>, RoadUser> createMapMessage(std::vector<MasaMessage> &input_messages){
     
-    std::map<std::pair<uint32_t, uint32_t>, RoadUser> current_messages_map;
+    std::map<std::pair<uint16_t, uint16_t>, RoadUser> current_messages_map;
     for(size_t i = 0; i < input_messages.size(); i++){
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
 
             //update the current message map for fast retrieval of data in other locations (eventually you need to update each pair contained)
-            std::pair<uint32_t, uint32_t> object_key = std::pair<uint32_t, uint32_t>(input_messages.at(i).objects.at(j).camera_id[0], input_messages.at(i).objects.at(j).object_id[0]);
+            std::pair<uint16_t, uint16_t> object_key = std::pair<uint16_t, uint16_t>(input_messages.at(i).objects.at(j).camera_id[0], input_messages.at(i).objects.at(j).object_id[0]);
             if(current_messages_map.find(object_key) == current_messages_map.end()){
                 current_messages_map[object_key] = input_messages.at(i).objects.at(j);
             }/* else {
@@ -409,12 +409,12 @@ std::map<std::pair<uint32_t, uint32_t>, RoadUser> createMapMessage(std::vector<M
 /**
  * Given a RoadUser, create the array of pair needed to access the map to find its duplicated
 */
-std::vector<std::pair<uint32_t, uint32_t>> getMapKeysFromObject(const RoadUser obj){
-    std::vector<std::pair<uint32_t, uint32_t>> keys;
-    std::vector<uint32_t> cam_id_vector = obj.camera_id;
-    std::vector<uint32_t> obj_id_vector = obj.object_id;
+std::vector<std::pair<uint16_t, uint16_t>> getMapKeysFromObject(const RoadUser obj){
+    std::vector<std::pair<uint16_t, uint16_t>> keys;
+    std::vector<uint16_t> cam_id_vector = obj.camera_id;
+    std::vector<uint16_t> obj_id_vector = obj.object_id;
     for(size_t i = 0; i < cam_id_vector.size(); i++){
-        keys.push_back(std::pair<uint32_t, uint32_t>(cam_id_vector[i], obj_id_vector[i]));
+        keys.push_back(std::pair<uint16_t, uint16_t>(cam_id_vector[i], obj_id_vector[i]));
     }
     return keys;
 }
@@ -433,10 +433,10 @@ std::vector<std::pair<uint32_t, uint32_t>> getMapKeysFromObject(const RoadUser o
  * 3 All the other objects that are not duplicates, must be recorded in the table for the evetntal filtering of the next set of input messages.
  * 
 */
-void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<std::pair<uint32_t, uint32_t>, RoadUser>& last_duplicated_objects,
-                                                                       std::map<std::pair<uint32_t, uint32_t>, RoadUser>& current_message_map   ){
+void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<std::pair<uint16_t, uint16_t>, RoadUser>& last_duplicated_objects,
+                                                                       std::map<std::pair<uint16_t, uint16_t>, RoadUser>& current_message_map   ){
 
-    std::map<std::pair<uint32_t, uint32_t>, RoadUser> current_table;
+    std::map<std::pair<uint16_t, uint16_t>, RoadUser> current_table;
     std::vector<MasaMessage> deduplicated_messages = input_messages;
 
     for(size_t i = 0; i < input_messages.size(); i++) {
@@ -445,7 +445,7 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
     //Here MUST BE INT, otherwise a size_t (aka unsigned long) would never be negative and so the loop would produce out of range indexes
     for(int i = input_messages.size()-1; i >= 0; --i) {
         for(int j = input_messages.at(i).objects.size()-1; j >= 0; --j){
-            std::pair<uint32_t, uint32_t> current_pair = std::pair<uint32_t, uint32_t>(input_messages[i].objects[j].camera_id[0], input_messages[i].objects[j].object_id[0]);
+            std::pair<uint16_t, uint16_t> current_pair = std::pair<uint16_t, uint16_t>(input_messages[i].objects[j].camera_id[0], input_messages[i].objects[j].object_id[0]);
 
             //if the current object has no entry in the current table, it means that the object is missing from deduplicated_messages  
             if(current_table.find(current_pair) == current_table.end()){
@@ -457,14 +457,14 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                 //otherwise you need to choose between all the duplicates that were detected
                 } else {
 
-                    std::pair<uint32_t, uint32_t> key_to_keep;
+                    std::pair<uint16_t, uint16_t> key_to_keep;
 
                     //so get all the duplicated objects of the current one
-                    std::vector<std::pair<uint32_t, uint32_t>> map_keys_of_current_object  = getMapKeysFromObject(input_messages[i].objects[j]);
+                    std::vector<std::pair<uint16_t, uint16_t>> map_keys_of_current_object  = getMapKeysFromObject(input_messages[i].objects[j]);
 
                     //explain this
                     for(size_t x = 0; x < map_keys_of_current_object.size(); x++){
-                        std::vector<std::pair<uint32_t, uint32_t>> tmp = getMapKeysFromObject(current_message_map[map_keys_of_current_object[x]]);
+                        std::vector<std::pair<uint16_t, uint16_t>> tmp = getMapKeysFromObject(current_message_map[map_keys_of_current_object[x]]);
                         for(size_t y = 0; y < tmp.size(); y++){
                             auto key = tmp.at(y);
                             if (find(map_keys_of_current_object.begin(), map_keys_of_current_object.end(), key) == map_keys_of_current_object.end()){
@@ -479,7 +479,7 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                         //Ora abbiamo trovato un oggetto tra quelli del messaggio precedente con una delle chiavi del messaggio corrente
                         if (last_duplicated_objects.find(map_keys_of_current_object[x]) != last_duplicated_objects.end()){
 
-                            std::vector<std::pair<uint32_t, uint32_t>> map_keys_of_old_object = getMapKeysFromObject(map_iterator->second);
+                            std::vector<std::pair<uint16_t, uint16_t>> map_keys_of_old_object = getMapKeysFromObject(map_iterator->second);
 
                             //Now we select which pair is the one to keep
                             for(size_t y = 0; y < map_keys_of_old_object.size() and was_in_the_last_message == false; y++){
@@ -531,7 +531,7 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
 
                         //key to keep becomes the one with the oldest timestamp (so we need to recover the object id) 
                         key_to_keep = std::find_if(map_keys_of_current_object.begin(), map_keys_of_current_object.end(),
-                                                    [&messages](const std::pair<uint32_t, uint32_t>& b) -> bool { return messages[0].cam_idx == b.first; })[0];
+                                                    [&messages](const std::pair<uint16_t, uint16_t>& b) -> bool { return messages[0].cam_idx == b.first; })[0];
 
                         //update objects info with the weighted average between all the duplicated objects.
                         RoadUser object_to_keep = createAggregatedObject(map_keys_of_current_object, key_to_keep, current_message_map);
@@ -595,7 +595,8 @@ void print_n_objects(std::vector<MasaMessage> &input_messages){
  * - for smart vehicles, track their objects
  * - output: a single MasaMessage with the aggregation of all above procedures
 */
-void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, MasaMessage &output_message, std::map<std::pair<uint32_t, uint32_t>, RoadUser>& last_duplicated_objects) {
+void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, MasaMessage &output_message, 
+                                     std::map<std::pair<uint16_t, uint16_t>, RoadUser>& last_duplicated_objects) {
  
     output_message.lights.clear(); 
     output_message.objects.clear();
@@ -604,7 +605,7 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
     //Standard deduplication method
     if(input_messages.size() > 1){
         deduplicationFromMessages(input_messages);
-        std::map<std::pair<uint32_t, uint32_t>, RoadUser> current_message_map = createMapMessage(input_messages);
+        std::map<std::pair<uint16_t, uint16_t>, RoadUser> current_message_map = createMapMessage(input_messages);
         removeDuplicatedObjects(input_messages, last_duplicated_objects, current_message_map);
     }
 
@@ -683,7 +684,7 @@ void Deduplicator::showUpdates() {
 */
 void * Deduplicator::deduplicate(void *n) {
     std::vector<MasaMessage> input_messages;
-    std::map<std::pair<uint32_t, uint32_t>, RoadUser> last_duplicated_objects;
+    std::map<std::pair<uint16_t, uint16_t>, RoadUser> last_duplicated_objects;
     std::vector<MasaMessage> tmp;
     MasaMessage deduplicate_message;
     std::vector<cv::Point2f> map_pixels;
