@@ -55,6 +55,11 @@ cmake ..
 make
 ```
 
+If the cmake command fails on the Python3_LIBRARY variable, it is probably due to the wrong version of python (you need python3.6.9), then you can try the following command:
+```
+cmake -DPython3_EXECUTABLE=/usr/bin/python3 ..
+```
+
 ## How to use
 
 ### Configuration

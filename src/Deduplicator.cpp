@@ -3,7 +3,8 @@
 namespace fog {
 
 void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers, MasaMessage *m, 
-                                 geodetic_converter::GeodeticConverter &gc, double *adfGeoTransform) {
+                                 geodetic_converter::GeodeticConverter &gc, double *adfGeoTransform,
+                                 const std::vector<uint32_t> camera_id) {
     double lat, lon, alt;
     for (auto t : trackers) {
         if (t.predList.size() > 0) {
@@ -14,9 +15,13 @@ void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers,
             uint8_t orientation = orientation_to_uint8(t.predList.back().yaw);
             uint8_t velocity = speed_to_uint8(t.predList.back().vel);
             RoadUser r;
+            r.camera_id = camera_id;
             r.latitude = static_cast<float>(lat);
-            r.longitude = static_cast<float>(lon); 
-            r.error = 0.0;
+            r.longitude = static_cast<float>(lon);
+            std::vector<uint32_t> obj_id_vector;
+            obj_id_vector.push_back(t.id);
+            r.object_id = obj_id_vector;
+            r.error = t.traj.back().error;
             r.speed = velocity;
             r.orientation = orientation;
             r.category = cat;
@@ -42,7 +47,8 @@ Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage,
     dt = 0.03;
     trVerbose = false;
     gc.initialiseReference(44.655540, 10.934315, 0);
-    t = new tracking::Tracking(nStates, dt, initialAge);
+    t = new tracking::Tracking(nStates, dt, initialAge, tracking::UKF_t);
+    edge_tr = new tracking::Tracking(nStates, dt, initialAge, tracking::UKF_t);
     viewer = &v;
     show = visual;
 }
@@ -50,6 +56,7 @@ Deduplicator::Deduplicator(ClassAggregatorMessage &inputSharedMessage,
 Deduplicator::~Deduplicator() {
     free(adfGeoTransform);
     delete t;
+    delete edge_tr;
 }
 
 void Deduplicator::start() {
@@ -90,6 +97,67 @@ std::vector<MasaMessage> Deduplicator::filterOldMessages(std::vector<MasaMessage
         copy.erase(copy.begin() + d);
     return copy;
 }
+
+/**
+ * Check if the messages contain the tracker information (camera_id and object_id vectors).
+ * If object_id vector is empty, then fill it with that information.
+*/
+std::vector<MasaMessage> Deduplicator::fillTrackerInfo(std::vector<MasaMessage> input_messages) {
+    // std::cout<<"messages: "<<input_messages.size()<<std::endl;
+    std::vector<MasaMessage> copy = input_messages;
+    std::vector<int> delete_ids;
+
+    MasaMessage tracked_message;
+    std::vector<uint32_t> camera_id;
+    int count_no_tracking_messages = 0;
+    //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
+    std::vector<tracking::obj_m> objects_to_track;
+    for(size_t i = 0; i < input_messages.size(); i++) {
+
+        // the first object could be a special car, so skip it and check on the second one.
+        // If it is a connected vehicle or it is a smart vehicle with no other road user, its size is equal to one.
+        // If it is a Traffic Light, objects vector is empty.
+        if(input_messages.at(i).objects.size() > 1 && input_messages.at(i).objects.at(1).object_id.size()!=0) 
+            continue;
+        
+        //TODO: only a message with no tracker information is supported. For each of this kind of message a tracker is needed 
+        if(count_no_tracking_messages == 1) {
+            std::cout<<"WARNING!!! TOO MANY MESSAGES WITHOUT TRACKING INFORMATION\n";
+            continue;
+        }
+
+        delete_ids.push_back(i);
+        //The smart vehicle does not need to be tracked so it can immediately be pushed in output messages
+        tracked_message.cam_idx = input_messages.at(i).cam_idx;
+        tracked_message.t_stamp_ms = input_messages.at(i).t_stamp_ms;
+        tracked_message.objects.push_back(input_messages.at(i).objects.at(0));
+        for(size_t j = 1; j < input_messages.at(i).objects.size(); j++) {
+            double north, east, up;
+            this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
+            objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1, 0));
+        }
+        count_no_tracking_messages ++;
+    }
+
+    //if some object need to be tracked, track it
+    if(objects_to_track.size() > 0){
+        camera_id.push_back(tracked_message.cam_idx);
+        this->edge_tr->track(objects_to_track, this->trVerbose);
+        create_message_from_tracker(edge_tr->getTrackers(), &tracked_message, this->gc, this->adfGeoTransform, camera_id);
+    }
+    tracked_message.num_objects = tracked_message.objects.size();
+
+    if (delete_ids.size()==0)
+        return input_messages;
+    if (delete_ids.size() != 1)
+        std::sort(delete_ids.begin(), delete_ids.end(), [](int a, int b) {return a > b; });
+    delete_ids.erase( std::unique( delete_ids.begin(), delete_ids.end() ), delete_ids.end() );
+    for(auto d : delete_ids)
+        copy.erase(copy.begin() + d);
+    copy.push_back(tracked_message);
+    return copy;
+}
+
 
 /** from float to uint8 the conversion is uint8_t(std::abs(vel * 3.6 * 2)), so this is the opposite*/
 double uint8_to_speed(const uint8_t speed){ return static_cast<double>(speed)/7.2;}
@@ -623,7 +691,7 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
                 if(input_messages.at(i).objects.at(j).object_id.size() <= 1){
                     double north, east, up;
                     this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
-                    objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1));
+                    objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1, 0));
                 //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it 
                 } else {
                     output_message.objects.push_back(input_messages.at(i).objects.at(j));  
@@ -638,11 +706,13 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
         for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
             output_message.lights.push_back(input_messages.at(i).lights.at(j)); 
     }
-
+    std::vector<uint32_t> camera_id;
+    uint32_t cam = 1000;
+    camera_id.push_back(cam); //TODO: replace with myCamIdx
     //if some object need to be tracked, track it
     if(objects_to_track.size() > 0){
         this->t->track(objects_to_track, this->trVerbose);
-        create_message_from_tracker(t->getTrackers(), &output_message, this->gc, this->adfGeoTransform);
+        create_message_from_tracker(t->getTrackers(), &output_message, this->gc, this->adfGeoTransform, camera_id);
     }
     output_message.num_objects = output_message.objects.size();
 }
@@ -708,6 +778,11 @@ void * Deduplicator::deduplicate(void *n) {
         // filter old messages from the same id (camera or traffic light)
         input_messages = filterOldMessages(input_messages);
         prof.tock("filter old");
+        
+        prof.tick("tracker");
+        input_messages = fillTrackerInfo(input_messages);
+        prof.tock("tracker");
+        
         prof.tick("elaboration");
         // takes the input messages and return the deduplicate message
         elaborateMessages(input_messages, deduplicate_message, last_duplicated_objects);
