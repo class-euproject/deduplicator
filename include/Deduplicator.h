@@ -61,7 +61,8 @@ public:
     void end();
     std::vector<MasaMessage> filterOldMessages(std::vector<MasaMessage> input_messages);
     void elaborateMessages(std::vector<MasaMessage>& input_messages, 
-                              MasaMessage &output_message);
+                              MasaMessage &output_message,
+                              std::map<std::pair<uint32_t, uint32_t>, RoadUser>& last_duplicated_objects);
     void showUpdates();
     void *deduplicate(void *n);
 };
