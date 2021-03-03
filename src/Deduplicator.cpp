@@ -4,7 +4,7 @@ namespace fog {
 
 void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers, MasaMessage *m, 
                                  geodetic_converter::GeodeticConverter &gc, double *adfGeoTransform,
-                                 const std::vector<uint32_t> camera_id) {
+                                 const std::vector<uint16_t> camera_id) {
     double lat, lon, alt;
     for (auto t : trackers) {
         if (t.predList.size() > 0) {
@@ -18,7 +18,7 @@ void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers,
             r.camera_id = camera_id;
             r.latitude = static_cast<float>(lat);
             r.longitude = static_cast<float>(lon);
-            std::vector<uint32_t> obj_id_vector;
+            std::vector<uint16_t> obj_id_vector;
             obj_id_vector.push_back(t.id);
             r.object_id = obj_id_vector;
             r.error = t.traj.back().error;
@@ -108,7 +108,7 @@ std::vector<MasaMessage> Deduplicator::fillTrackerInfo(std::vector<MasaMessage> 
     std::vector<int> delete_ids;
 
     MasaMessage tracked_message;
-    std::vector<uint32_t> camera_id;
+    std::vector<uint16_t> camera_id;
     int count_no_tracking_messages = 0;
     //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
     std::vector<tracking::obj_m> objects_to_track;
@@ -707,8 +707,8 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
         for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
             output_message.lights.push_back(input_messages.at(i).lights.at(j)); 
     }
-    std::vector<uint32_t> camera_id;
-    uint32_t cam = 1000;
+    std::vector<uint16_t> camera_id;
+    uint16_t cam = 1000;
     camera_id.push_back(cam); //TODO: replace with myCamIdx
     //if some object need to be tracked, track it
     if(objects_to_track.size() > 0){

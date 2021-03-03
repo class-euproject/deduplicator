@@ -22,6 +22,7 @@
 #include "../masa_protocol/include/communicator.hpp"
 #include "../masa_protocol/include/messages.hpp"
 
+using namespace masa;
 
 inline char separator()
 {

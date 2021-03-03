@@ -11,6 +11,8 @@
 #include <iomanip>
 #include "../masa_protocol/include/messages.hpp"
 
+using namespace masa;
+
 namespace fog {
     
 inline char separator()

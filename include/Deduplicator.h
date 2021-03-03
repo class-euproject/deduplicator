@@ -64,7 +64,7 @@ public:
     std::vector<MasaMessage> fillTrackerInfo(std::vector<MasaMessage> input_messages);
     void elaborateMessages(std::vector<MasaMessage>& input_messages, 
                               MasaMessage &output_message,
-                              std::map<std::pair<uint32_t, uint32_t>, RoadUser>& last_duplicated_objects);
+                              std::map<std::pair<uint16_t, uint16_t>, RoadUser>& last_duplicated_objects);
     void showUpdates();
     void *deduplicate(void *n);
 };

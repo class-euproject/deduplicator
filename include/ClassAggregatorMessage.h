@@ -5,6 +5,8 @@
 #include <assert.h>
 #include "../masa_protocol/include/messages.hpp"
 
+using namespace masa;
+
 namespace fog {
 
 class ClassAggregatorMessage {
