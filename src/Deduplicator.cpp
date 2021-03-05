@@ -117,7 +117,8 @@ std::vector<MasaMessage> Deduplicator::fillTrackerInfo(std::vector<MasaMessage> 
         // the first object could be a special car, so skip it and check on the second one.
         // If it is a connected vehicle or it is a smart vehicle with no other road user, its size is equal to one.
         // If it is a Traffic Light, objects vector is empty.
-        if(input_messages.at(i).objects.size() > 1 && input_messages.at(i).objects.at(1).object_id.size()!=0) 
+        if(input_messages.at(i).objects.size() <= 1 || 
+            input_messages.at(i).objects.size() > 1 && input_messages.at(i).objects.at(1).object_id.size()!=0) 
             continue;
         
         //TODO: only a message with no tracker information is supported. For each of this kind of message a tracker is needed 
