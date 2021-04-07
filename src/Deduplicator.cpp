@@ -69,6 +69,38 @@ void Deduplicator::end() {
 }
 
 /**
+ * Prints a RoadUser
+ */
+void printRoadUser(const RoadUser ru){
+
+    std::cout << std::setprecision(10) << ru.category << " " << ru.latitude << " " << ru.longitude << " " << (int) ru.speed  
+                                       << " " << ru.orientation << " " << ru.error << " " << ru.camera_id.size();
+
+    for( auto elem : ru.camera_id){
+        std::cout << " " << elem;
+    }
+
+    for( auto elem : ru.object_id){
+        std::cout << " " << elem;
+    }
+
+    std::cout << std::endl;
+}
+
+/**
+ * Prints an array of MasaMessages
+*/
+void printMessages(std::vector<MasaMessage> input_messages){
+    for(auto message: input_messages){
+        std::cout << "Message source: " << message.cam_idx << " with " << message.num_objects << " objects" << std::endl;
+        for(auto object: message.objects){
+            printRoadUser(object);
+        }
+    }
+}
+
+
+/**
  * Check if two o more messages from the same cam_idx (road users or traffic lights) are arrived.
  * Remove the old one.
 */
@@ -227,9 +259,10 @@ void printObject(RoadUser& ru){
  * - for speed and yaw a conversion to double is needed, then the weighted average is computed
  * - if none of the objects have a defined precision, a standard mean is computed
 */
-RoadUser createAggregatedObject(std::vector<std::pair<uint16_t, uint16_t>>        &map_keys_of_current_object,
-                               std::pair<uint16_t, uint16_t>                      &key_to_keep,
-                               std::map<std::pair<uint16_t, uint16_t>, RoadUser>  &current_message_map      ){
+RoadUser createAggregatedObject(std::vector<std::pair<uint16_t, uint16_t>>              &map_keys_of_current_object,
+                                std::pair<uint16_t, uint16_t>                           &key_to_keep,
+                                std::map<std::pair<uint16_t, uint16_t>, RoadUser>       &current_message_map,
+                                const bool                                              is_connected                ){
 
     std::vector<double> latitude_vector, longitude_vector, error_vector, speed_vector, orientation_vector;
     double avg_latitude, avg_longitude, avg_speed, avg_orientation;
@@ -237,81 +270,86 @@ RoadUser createAggregatedObject(std::vector<std::pair<uint16_t, uint16_t>>      
     std::vector<RoadUser> objects;
     RoadUser aggregatedObject;
 
-    //retrieval of all data for average computation (skipping the 0-error ones)
-    for(size_t i = 0; i < map_keys_of_current_object.size(); i++){
-        RoadUser object = current_message_map[map_keys_of_current_object.at(i)];
-        objects.push_back(object);
+    if(!is_connected){
+        //retrieval of all data for average computation (skipping the 0-error ones)
+        for(size_t i = 0; i < map_keys_of_current_object.size(); i++){
+            RoadUser object = current_message_map[map_keys_of_current_object.at(i)];
+            objects.push_back(object);
 
-        //Take into account only error > 0 because if the error is exactly 0 the object is too far away from the camera
-        if (object.error > 0){
+            //Take into account only error > 0 because if the error is exactly 0 the object is too far away from the camera
+            if (object.error > 0){
 
-            latitude_vector.push_back(object.latitude);
-            longitude_vector.push_back(object.longitude);
-            weights.push_back(1.0/object.error);
-            if(object.speed != 0 and object.orientation != 0){
-                speed_vector.push_back(uint8_to_speed(object.speed));
-                speed_weights.push_back(1.0/object.error);
-                orientation_vector.push_back(uint16_to_yaw(object.orientation));
+                latitude_vector.push_back(object.latitude);
+                longitude_vector.push_back(object.longitude);
+                weights.push_back(1.0/object.error);
+                if(object.speed != 0 and object.orientation != 0){
+                    speed_vector.push_back(uint8_to_speed(object.speed));
+                    speed_weights.push_back(1.0/object.error);
+                    orientation_vector.push_back(uint16_to_yaw(object.orientation));
+                }
             }
         }
-    }
 
-    //if 2 or more data are available compute the average of lat/lon
-    if(latitude_vector.size() > 1){
-        avg_latitude = weightedAverage(weights, latitude_vector);
-        avg_longitude = weightedAverage(weights, longitude_vector);
-    //otherwise the average of each value is the one available
-    } else if (latitude_vector.size() == 1){
-        avg_latitude = latitude_vector.at(0);
-        avg_longitude = longitude_vector.at(0);
+        //if 2 or more data are available compute the average of lat/lon
+        if(latitude_vector.size() > 1){
+            avg_latitude = weightedAverage(weights, latitude_vector);
+            avg_longitude = weightedAverage(weights, longitude_vector);
+        //otherwise the average of each value is the one available
+        } else if (latitude_vector.size() == 1){
+            avg_latitude = latitude_vector.at(0);
+            avg_longitude = longitude_vector.at(0);
+        } else {
+            for(auto elem : objects){
+                latitude_vector.push_back(elem.latitude);
+                longitude_vector.push_back(elem.longitude);
+            }
+            avg_latitude = std::accumulate(latitude_vector.begin(), latitude_vector.end(), 0) / latitude_vector.size();
+            avg_longitude = std::accumulate(longitude_vector.begin(), longitude_vector.end(), 0) / longitude_vector.size();
+        }
+
+        //speed and orientation vectors are a little bit fragile: it could be we don't have valid data to compute their average
+        //(this is due to the fact that the tracker needs a few frames to be able to make an accurate estimation of those values)
+        if(speed_vector.size() > 0){
+            //if 2 or more data are available compute the average of speed
+            if(speed_vector.size() > 1){
+                avg_speed = weightedAverage(speed_weights, speed_vector);
+            //otherwise the average of each value is the one available
+            } else {
+                avg_speed = speed_vector.at(0);
+            }
+        } else { 
+            for(auto elem : objects)
+                speed_vector.push_back( uint8_to_speed(elem.speed));
+            
+            avg_speed = std::accumulate(speed_vector.begin(), speed_vector.end(), 0) / speed_vector.size();
+        }
+
+
+        if(orientation_vector.size() > 0){
+            //if 2 or more data are available compute the average of the orientation
+            if(orientation_vector.size() > 1){
+                avg_orientation = angleAverage(orientation_vector);
+            //otherwise the average of each value is the one available
+            } else {
+                avg_orientation = orientation_vector.at(0);
+            }
+        } else { 
+            for(auto elem : objects)
+                orientation_vector.push_back( uint16_to_yaw(elem.orientation));
+            
+            avg_orientation = std::accumulate(orientation_vector.begin(), orientation_vector.end(), 0) / orientation_vector.size();
+        }
+
+        aggregatedObject.latitude = avg_latitude;
+        aggregatedObject.longitude = avg_longitude;
+        aggregatedObject.speed = speed_to_uint8(avg_speed);
+        aggregatedObject.orientation = orientation_to_uint8(avg_orientation);
     } else {
-        for(auto elem : objects){
-            latitude_vector.push_back(elem.latitude);
-            longitude_vector.push_back(elem.longitude);
-        }
-        avg_latitude = std::accumulate(latitude_vector.begin(), latitude_vector.end(), 0) / latitude_vector.size();
-        avg_longitude = std::accumulate(longitude_vector.begin(), longitude_vector.end(), 0) / longitude_vector.size();
+        aggregatedObject = current_message_map[key_to_keep];
     }
 
-    //speed and orientation vectors are a little bit fragile: it could be we don't have valid data to compute their average
-    //(this is due to the fact that the tracker needs a few frames to be able to make an accurate estimation of those values)
-    if(speed_vector.size() > 0){
-        //if 2 or more data are available compute the average of speed
-        if(speed_vector.size() > 1){
-            avg_speed = weightedAverage(speed_weights, speed_vector);
-        //otherwise the average of each value is the one available
-        } else {
-            avg_speed = speed_vector.at(0);
-        }
-    } else { 
-        for(auto elem : objects)
-            speed_vector.push_back( uint8_to_speed(elem.speed));
-        
-        avg_speed = std::accumulate(speed_vector.begin(), speed_vector.end(), 0) / speed_vector.size();
-    }
-
-
-    if(orientation_vector.size() > 0){
-        //if 2 or more data are available compute the average of the orientation
-        if(orientation_vector.size() > 1){
-            avg_orientation = angleAverage(orientation_vector);
-        //otherwise the average of each value is the one available
-        } else {
-            avg_orientation = orientation_vector.at(0);
-        }
-    } else { 
-        for(auto elem : objects)
-            orientation_vector.push_back( uint16_to_yaw(elem.orientation));
-        
-        avg_orientation = std::accumulate(orientation_vector.begin(), orientation_vector.end(), 0) / orientation_vector.size();
-    }
-
-    aggregatedObject.latitude = avg_latitude;
-    aggregatedObject.longitude = avg_longitude;
-    aggregatedObject.speed = speed_to_uint8(avg_speed);
-    aggregatedObject.orientation = orientation_to_uint8(avg_orientation);
-    aggregatedObject.camera_id.push_back(key_to_keep.first);
-    aggregatedObject.object_id.push_back(key_to_keep.second);
+    aggregatedObject.camera_id = {key_to_keep.first};
+    aggregatedObject.object_id = {key_to_keep.second};
     for(auto key : map_keys_of_current_object){
         if(key != key_to_keep){
             aggregatedObject.camera_id.push_back(key.first);
@@ -531,7 +569,7 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                     //so get all the duplicated objects of the current one
                     std::vector<std::pair<uint16_t, uint16_t>> map_keys_of_current_object  = getMapKeysFromObject(input_messages[i].objects[j]);
 
-                    //explain this
+                    //retrive all the keys for the considered cluster of objects
                     for(size_t x = 0; x < map_keys_of_current_object.size(); x++){
                         std::vector<std::pair<uint16_t, uint16_t>> tmp = getMapKeysFromObject(current_message_map[map_keys_of_current_object[x]]);
                         for(size_t y = 0; y < tmp.size(); y++){
@@ -542,29 +580,41 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                         }
                     }
 
-                    bool was_in_the_last_message = false;
-                    for(size_t x = 0; x < map_keys_of_current_object.size() and was_in_the_last_message == false; x++){
-                        auto map_iterator = last_duplicated_objects.find(map_keys_of_current_object[x]);
-                        //Ora abbiamo trovato un oggetto tra quelli del messaggio precedente con una delle chiavi del messaggio corrente
-                        if (last_duplicated_objects.find(map_keys_of_current_object[x]) != last_duplicated_objects.end()){
+                    //check if it is a connected vehicle otherwise find a key to keep looking into the old messages
+                    bool is_connected = false;
+                    bool key_found = false;
+                    for(size_t x = 0; x < map_keys_of_current_object.size() && is_connected == false; x++){
+                        if(current_message_map[map_keys_of_current_object[x]].category >= C_marelli1){
+                            is_connected = true;
+                            key_found = true;
+                            key_to_keep = map_keys_of_current_object[x];
+                        }
+                    }
 
-                            std::vector<std::pair<uint16_t, uint16_t>> map_keys_of_old_object = getMapKeysFromObject(map_iterator->second);
+                    if(!is_connected){
+                        for(size_t x = 0; x < map_keys_of_current_object.size() and key_found == false; x++){
+                            auto map_iterator = last_duplicated_objects.find(map_keys_of_current_object[x]);
+                            //Ora abbiamo trovato un oggetto tra quelli del messaggio precedente con una delle chiavi del messaggio corrente
+                            if (last_duplicated_objects.find(map_keys_of_current_object[x]) != last_duplicated_objects.end()){
 
-                            //Now we select which pair is the one to keep
-                            for(size_t y = 0; y < map_keys_of_old_object.size() and was_in_the_last_message == false; y++){
-                                if(std::find(map_keys_of_current_object.begin(), map_keys_of_current_object.end(), map_keys_of_old_object[y]) != map_keys_of_current_object.end()){
-                                    was_in_the_last_message = true;
-                                    key_to_keep = map_keys_of_old_object[y];
+                                std::vector<std::pair<uint16_t, uint16_t>> map_keys_of_old_object = getMapKeysFromObject(map_iterator->second);
+
+                                //Now we select which pair is the one to keep
+                                for(size_t y = 0; y < map_keys_of_old_object.size() and key_found == false; y++){
+                                    if(std::find(map_keys_of_current_object.begin(), map_keys_of_current_object.end(), map_keys_of_old_object[y]) != map_keys_of_current_object.end()){
+                                        key_found = true;
+                                        key_to_keep = map_keys_of_old_object[y];
+                                    }
                                 }
                             }
                         }
                     }
                     
                     //so if a key has been found we can register the new entry on the map and put the object in output
-                    if(was_in_the_last_message){
+                    if(key_found){
 
                         //update objects info with the weighted average between all the duplicated objects.
-                        RoadUser object_to_keep = createAggregatedObject(map_keys_of_current_object, key_to_keep, current_message_map);
+                        RoadUser object_to_keep = createAggregatedObject(map_keys_of_current_object, key_to_keep, current_message_map, is_connected);
 
                         //update the final table of the message
                         for(size_t x = 0; x < map_keys_of_current_object.size(); x++){
@@ -603,7 +653,7 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                                                     [&messages](const std::pair<uint16_t, uint16_t>& b) -> bool { return messages[0].cam_idx == b.first; })[0];
 
                         //update objects info with the weighted average between all the duplicated objects.
-                        RoadUser object_to_keep = createAggregatedObject(map_keys_of_current_object, key_to_keep, current_message_map);
+                        RoadUser object_to_keep = createAggregatedObject(map_keys_of_current_object, key_to_keep, current_message_map, false);
 
                         //update the current map
                         for(size_t x = 0; x < map_keys_of_current_object.size(); x++){
@@ -676,38 +726,44 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
         deduplicationFromMessages(input_messages);
         std::map<std::pair<uint16_t, uint16_t>, RoadUser> current_message_map = createMapMessage(input_messages);
         removeDuplicatedObjects(input_messages, last_duplicated_objects, current_message_map);
+        for (size_t i = 0; i < input_messages.size(); i++){
+            input_messages[i].num_objects = input_messages[i].objects.size();
+        }
     }
 
     //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
     std::vector<tracking::obj_m> objects_to_track;
     for(size_t i = 0; i < input_messages.size(); i++) {
         //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
-        if( input_messages.at(i).objects.at(0).category == C_marelli1 || 
-            input_messages.at(i).objects.at(0).category == C_marelli2 || 
-            input_messages.at(i).objects.at(0).category == C_levante  || 
-            input_messages.at(i).objects.at(0).category == C_rover    ){
-            //The smart vehicle does not need to be tracked so it can immediately be pushed in output messages
-            output_message.objects.push_back(input_messages.at(i).objects.at(0));
-            for(size_t j = 1; j < input_messages.at(i).objects.size(); j++) {
-                //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
-                if(input_messages.at(i).objects.at(j).object_id.size() <= 1){
-                    double north, east, up;
-                    this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
-                    objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1, 0));
-                //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it 
-                } else {
-                    output_message.objects.push_back(input_messages.at(i).objects.at(j));  
+        if(input_messages[i].objects.size() > 0){
+            if( input_messages.at(i).objects.at(0).category == C_marelli1 || 
+                input_messages.at(i).objects.at(0).category == C_marelli2 || 
+                input_messages.at(i).objects.at(0).category == C_levante  || 
+                input_messages.at(i).objects.at(0).category == C_rover    ){
+                //The smart vehicle does not need to be tracked so it can immediately be pushed in output messages
+                output_message.objects.push_back(input_messages.at(i).objects.at(0));
+                for(size_t j = 1; j < input_messages.at(i).objects.size(); j++) {
+                    //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
+                    if(input_messages.at(i).objects.at(j).object_id.size() <= 1){
+                        double north, east, up;
+                        this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
+                        objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1, 0));
+                    //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it 
+                    } else {
+                        output_message.objects.push_back(input_messages.at(i).objects.at(j));  
+                    }
                 }
+            //if the current message is coming from a any other source, its objects are already tracked
+            } else {
+                for(size_t j = 0; j < input_messages.at(i).objects.size(); j++)
+                    output_message.objects.push_back(input_messages.at(i).objects.at(j));
             }
-        //if the current message is coming from a any other source, its objects are already tracked
-        } else {
-            for(size_t j = 0; j < input_messages.at(i).objects.size(); j++)
-                output_message.objects.push_back(input_messages.at(i).objects.at(j));
-        }
 
-        for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
-            output_message.lights.push_back(input_messages.at(i).lights.at(j)); 
+            for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
+                output_message.lights.push_back(input_messages.at(i).lights.at(j));
+        }
     }
+
     std::vector<uint16_t> camera_id;
     uint16_t cam = 1000;
     camera_id.push_back(cam); //TODO: replace with myCamIdx
