@@ -605,7 +605,7 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                             current_table[map_keys_of_current_object[x]] = object_to_keep;
                         }
 
-                        //tecnicamente dovresti andarti a prendere il messaggio giusto e metterlo lì, vedi se per il momento funziona lo stesso
+                        //actually here you should put the object in the correct message but it should work like this. 
                         deduplicated_messages[i].objects.push_back(object_to_keep);
                         
                     //otherwise we need to check the timestamp of the messages and keep the oldest one
@@ -632,7 +632,7 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                                                     [&messages](const std::pair<uint16_t, uint16_t>& b) -> bool { return messages[0].cam_idx == b.first; })[0];
 
                         //update objects info with the weighted average between all the duplicated objects.
-                        RoadUser object_to_keep = createAggregatedObject(map_keys_of_current_object, key_to_keep, current_message_map, false);
+                        RoadUser object_to_keep = createAggregatedObject(map_keys_of_current_object, key_to_keep, current_message_map, is_connected);
 
                         //update the current map
                         for(size_t x = 0; x < map_keys_of_current_object.size(); x++){
@@ -665,19 +665,17 @@ void countDeduplicatedObjects(std::vector<MasaMessage> &input_messages){
         }
     }
     if(counter > 0)
-        std::cout << std::endl << "Duplicated objects: " << counter << " with " << input_messages.size() << " input messages" << std::endl << std::endl;
+        std::cout << "Duplicated objects: " << counter << " with " << input_messages.size() << " input messages" << std::endl << std::endl;
 }
 
 void print_n_objects(std::vector<MasaMessage> &input_messages){
 
     int counter = 0;
     for(size_t i = 0; i < input_messages.size(); i++) {
-        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++) {
-            counter++; 
-        }
+        counter += input_messages.at(i).objects.size(); 
     }
 
-    std::cout << "In the message there are " << counter << " objects" << std::endl;
+    std::cout << "There are " << counter << " objects in the messages" << std::endl;
 }
 
 /**
