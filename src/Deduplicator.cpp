@@ -489,25 +489,7 @@ std::map<std::pair<uint16_t, uint16_t>, RoadUser> createMapMessage(std::vector<M
             std::pair<uint16_t, uint16_t> object_key = std::pair<uint16_t, uint16_t>(input_messages.at(i).objects.at(j).camera_id[0], input_messages.at(i).objects.at(j).object_id[0]);
             if(current_messages_map.find(object_key) == current_messages_map.end()){
                 current_messages_map[object_key] = input_messages.at(i).objects.at(j);
-            }/* else {
-                std::cout << "Ho trovato un oggetto già presente nella mappa" << std::endl;
-                RoadUser originale = input_messages.at(i).objects.at(j);
-                RoadUser doppione = current_messages_map.find(object_key)->second;
-                
-                std::cout << "Dati dell'oggetto attuale: " << std::endl;
-                for(size_t x = 0; x < originale.camera_id.size(); x++){
-                    std::cout << originale.camera_id[x] << " " << originale.object_id[x] << std::endl;
-                }
-                std::cout << std::setprecision(10) << originale.latitude << " " << originale.longitude << std::endl;
-
-                std::cout << "Dati dell'oggetto nella mappa: " << std::endl;
-                for(size_t x = 0; x < doppione.camera_id.size(); x++){
-                    std::cout << doppione.camera_id[x] << " " << doppione.object_id[x] << std::endl;
-                }
-                std::cout << std::setprecision(10) << doppione.latitude << " " << doppione.longitude << std::endl;
-                
-                exit(0);
-            }*/
+            }
         }
     }
     return current_messages_map;
@@ -624,11 +606,6 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                         //tecnicamente dovresti andarti a prendere il messaggio giusto e metterlo lì, vedi se per il momento funziona lo stesso
                         deduplicated_messages[i].objects.push_back(object_to_keep);
                         
-                        /*if(current_table.find(key_to_keep) == current_table.end()) {
-                            current_table[key_to_keep] = object_to_keep;
-                            std::cout << "###### Forced key of the selected object ######" << std::endl;
-                            exit(0);
-                        } */
                     //otherwise we need to check the timestamp of the messages and keep the oldest one
                     } else {
                         //so retrieve the messages with the objects to choose from
@@ -659,12 +636,6 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                         for(size_t x = 0; x < map_keys_of_current_object.size(); x++){
                             current_table[map_keys_of_current_object[x]] = object_to_keep;
                         }
-
-                        /*if(current_table.find(key_to_keep) == current_table.end()) {
-                            current_table[key_to_keep] = object_to_keep;
-                            std::cout << "###### Forced key of the selected object ######" << std::endl;
-                            exit(0);
-                        } */
 
                         //update the messages
                         deduplicated_messages[i].objects.push_back(object_to_keep);
@@ -731,47 +702,16 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
         }
     }
 
-    //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
+    //copy the deduplicated objects into a single MasaMessage.
     std::vector<tracking::obj_m> objects_to_track;
     for(size_t i = 0; i < input_messages.size(); i++) {
-        //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
-        if(input_messages[i].objects.size() > 0){
-            if( input_messages.at(i).objects.at(0).category == C_marelli1 || 
-                input_messages.at(i).objects.at(0).category == C_marelli2 || 
-                input_messages.at(i).objects.at(0).category == C_levante  || 
-                input_messages.at(i).objects.at(0).category == C_rover    ){
-                //The smart vehicle does not need to be tracked so it can immediately be pushed in output messages
-                output_message.objects.push_back(input_messages.at(i).objects.at(0));
-                for(size_t j = 1; j < input_messages.at(i).objects.size(); j++) {
-                    //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
-                    if(input_messages.at(i).objects.at(j).object_id.size() <= 1){
-                        double north, east, up;
-                        this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
-                        objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1, 0));
-                    //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it 
-                    } else {
-                        output_message.objects.push_back(input_messages.at(i).objects.at(j));  
-                    }
-                }
-            //if the current message is coming from a any other source, its objects are already tracked
-            } else {
-                for(size_t j = 0; j < input_messages.at(i).objects.size(); j++)
-                    output_message.objects.push_back(input_messages.at(i).objects.at(j));
-            }
-
-            for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
-                output_message.lights.push_back(input_messages.at(i).lights.at(j));
-        }
+        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++)
+            output_message.objects.push_back(input_messages.at(i).objects.at(j));
+            
+        for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
+            output_message.lights.push_back(input_messages.at(i).lights.at(j));
     }
 
-    std::vector<uint16_t> camera_id;
-    uint16_t cam = 1000;
-    camera_id.push_back(cam); //TODO: replace with myCamIdx
-    //if some object need to be tracked, track it
-    if(objects_to_track.size() > 0){
-        this->t->track(objects_to_track, this->trVerbose);
-        create_message_from_tracker(t->getTrackers(), &output_message, this->gc, this->adfGeoTransform, camera_id);
-    }
     output_message.num_objects = output_message.objects.size();
 }
 
