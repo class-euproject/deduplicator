@@ -399,25 +399,28 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> input_messages, Ma
     for(size_t i = 0; i < input_messages.size(); i++) {
         MasaMessage& m = input_messages.at(i);
         //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
-        if( m.objects.at(0).category == C_marelli1 || 
-            m.objects.at(0).category == C_marelli2 || 
-            m.objects.at(0).category == C_levante || 
-            m.objects.at(0).category == C_rover) {
-            for(size_t j = 1; j < m.objects.size(); j++) { // TODO: why j starts at 1??
-                //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
-                if(m.objects.at(j).object_id.size() <= 1){
-                    double north, east, up;
-                    this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north, &up);
-                    objects_to_track.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
+        if (m.objects.size() > 0) {
+            if (m.objects.at(0).category == C_marelli1 ||
+                m.objects.at(0).category == C_marelli2 ||
+                m.objects.at(0).category == C_levante ||
+                m.objects.at(0).category == C_rover) {
+                for (size_t j = 1; j < m.objects.size(); j++) { // TODO: why j starts at 1??
+                    //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
+                    if (m.objects.at(j).object_id.size() <= 1) {
+                        double north, east, up;
+                        this->gc.geodetic2Enu(m.objects.at(i).latitude, m.objects.at(i).longitude, 0, &east, &north,
+                                              &up);
+                        objects_to_track.push_back(tracking::obj_m(east, north, 0, m.objects.at(i).category, 1, 1));
+                    }
+                        //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it
+                    else {
+                        output_message.objects.push_back(m.objects.at(i));
+                    }
                 }
-                //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it
-                else {
-                    output_message.objects.push_back(m.objects.at(i));
-                }
+            } else {
+                for (size_t j = 0; j < m.objects.size(); j++)
+                    output_message.objects.push_back(m.objects.at(j));
             }
-        } else {
-            for (size_t j = 0; j < m.objects.size(); j++)
-                output_message.objects.push_back(m.objects.at(j));
         }
 
         for(size_t j = 0; j < m.lights.size(); j++)
