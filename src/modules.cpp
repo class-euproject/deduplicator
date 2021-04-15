@@ -104,7 +104,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>
             info(return_message.num_objects);
     // std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
-    for (const RoadUser ru : return_message.objects) {
+    for (const RoadUser& ru : return_message.objects) {
         lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
         lon = std::get<1>(input_deduplicator[ru.idx][ru.idy]);
         pixel_x = std::get<6>(input_deduplicator[ru.idx][ru.idy]);
