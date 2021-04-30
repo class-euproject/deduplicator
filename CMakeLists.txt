@@ -45,6 +45,7 @@ message("Python_INCLUDE_DIRS:${Python3_INCLUDE_DIRS}")
 #-------------------------------------------------------------------------------
 add_subdirectory(tkCommon)
 add_subdirectory(class-tracker)
+add_subdirectory(libnabo)
 #add_subdirectory(masa_protocol)
 
 
@@ -58,6 +59,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/matplotlib-cpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/libnabo/nabo
                     /usr/include/gdal
                     ${EIGEN3_INCLUDE_DIR}
                     ${Python3_INCLUDE_DIRS}
@@ -67,7 +69,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
 
 file(GLOB classAggregator_SRC "src/*.cpp")
 
-set(classAggregator_LIBS  ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} ${Python3_LIBRARIES} yaml-cpp gdal tkCommon class-tracker)
+set(classAggregator_LIBS  ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} ${Python3_LIBRARIES} yaml-cpp gdal tkCommon class-tracker nabo)
 add_library(classAggregator SHARED ${classAggregator_SRC})
 target_link_libraries(classAggregator ${classAggregator_LIBS})
 

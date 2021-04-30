@@ -1,4 +1,6 @@
 #include "Deduplicator.h"
+#include "nabo.h"
+
 
 namespace fog {
 
@@ -373,105 +375,133 @@ float Deduplicator::distance(const RoadUser object1, const RoadUser object2) {
     return sqrt(pow(north1 - north2, 2) + pow(east1 - east2, 2));
 }
 
-/**
- * Compute the nearest object under a certain threshold 
- * to the reference, with the same category in the given MasaMessage, if any.
- */
-bool Deduplicator::nearest_of(const MasaMessage message, const DDstruct ref, const float threshold, DDstruct& ris){
-    DDstruct nearest;
-    bool found_something = false;
-    for(size_t i = 0; i < message.objects.size(); i++){
-
-        //if the object is not a duplicated of another object
-        if(message.objects.at(i).camera_id.size() == 1){
-            //For a camera, our smart vehicles are treated as a car
-            if(ref.rs.category == message.objects.at(i).category || 
-            ref.rs.category == Categories::C_car and message.objects.at(i).category >= Categories::C_marelli1 ||
-            ref.rs.category >= Categories::C_marelli1 and message.objects.at(i).category == Categories::C_car ){
-                float distance = this->distance(message.objects.at(i), ref.rs);
-                if(distance < threshold){
-                    if(found_something == false or nearest.distance > distance){
-                        nearest.rs = message.objects.at(i);
-                        nearest.distance = distance;
-                        nearest.object_index = i;
-                        ris = nearest;
-                        found_something = true;
-                    }
-                }
-            }
-        }
-    }
-    return found_something;
+bool check_category(const RoadUser reference, const RoadUser candidate){
+    return  reference.category == candidate.category || 
+            reference.category == Categories::C_car and candidate.category >= Categories::C_marelli1 ||
+            reference.category >= Categories::C_marelli1 and candidate.category == Categories::C_car  ;
 }
 
 /**
- * Standard algorithm for computing deduplication from input messages
+ * Kdtree algorithm for computing deduplication from input messages
 */
 void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_messages){
-
+    
     const float CAR_THRESHOLD = 2.5;  //multiple deduplication threshold for different road users
     const float AUTOBUS_THRESHOLD = 4.0;
     const float PERSON_THRESHOLD = 0.5;
 
-    for(size_t i = 0; i < input_messages.size(); i++){
-        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-            /*since this loop look for nearest objects in all other messages, we can assume that if an object have multiple ids in cam_id 
-            (or object_id, it's the same) it's a duplicated from another object already processed. Therefore we can just skip it.*/
-            if(input_messages.at(i).objects.at(j).camera_id.size() == 1){
-                //set the appropriate threshold geven the category of the object
-                float threshold;
-                switch (input_messages.at(i).objects.at(j).category)
-                {
-                case Categories::C_person:
-                    threshold = PERSON_THRESHOLD;
-                    break;
-                case Categories::C_car:
-                    threshold = CAR_THRESHOLD;
-                    break;
-                case Categories::C_bus:
-                    threshold = AUTOBUS_THRESHOLD;
-                    break;
-                default:
-                    threshold = CAR_THRESHOLD;
-                    break;
-                }
+    double north, east, up;
+    Eigen::MatrixXf M;
+    Nabo::NNSearchF* nns;
 
-                //find the nearest object in each message
-                std::vector<DDstruct> nearest;
-                DDstruct ref;
-                ref.rs = input_messages.at(i).objects.at(j);
-                ref.message_index = i;
-                ref.object_index = j;
-                ref.distance = 0.0;
-                nearest.push_back(ref);
-                
-                for(size_t k = 0; k < input_messages.size(); k++){ 
-                    if(k != i){
-                        DDstruct nearest_obj;
-                        if (this->nearest_of(input_messages.at(k), ref, threshold, nearest_obj) == true){
-                            nearest_obj.message_index = k;
-                            nearest.push_back(nearest_obj);
-                        }
+    std::vector<int> toMerge;
+    std::vector<std::pair<size_t, size_t>> objectIndexes;
+
+    const int K = input_messages.size()-1;
+    Eigen::VectorXf q(2);
+    Eigen::VectorXi indices(2*K);
+    Eigen::VectorXf dists2(2*K);
+
+    int nObjects = 0;
+    for(size_t i = 0; i < input_messages.size(); i++)
+        nObjects+= input_messages.at(i).objects.size();
+
+    M.resize(2, nObjects);
+
+    int offset = 0;
+    for(size_t i = 0; i < input_messages.size(); i++){
+        if(i > 0){
+            offset+=input_messages[i-1].objects.size();
+        }
+        for(size_t j = 0; j < input_messages[i].objects.size(); j++){
+
+            this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &north, &east, &up);
+            M(0, offset+j) = north;
+            M(1, offset+j) = east;
+            objectIndexes.push_back(std::pair<size_t, size_t>(i, j));
+        }
+    }
+
+    if(nObjects > 30){
+        nns = Nabo::NNSearchF::createKDTreeTreeHeap(M);
+    } else {
+        nns = Nabo::NNSearchF::createKDTreeLinearHeap(M);
+    }
+
+    for(size_t i = 0; i < input_messages.size(); i++){
+
+        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
+
+            //set the appropriate threshold geven the category of the object
+            float threshold;
+            switch (input_messages.at(i).objects.at(j).category)
+            {
+            case Categories::C_person:
+                threshold = PERSON_THRESHOLD;
+                break;
+            case Categories::C_car:
+                threshold = CAR_THRESHOLD;
+                break;
+            case Categories::C_bus:
+                threshold = AUTOBUS_THRESHOLD;
+                break;
+            default:
+                threshold = CAR_THRESHOLD;
+                break;
+            }
+
+            toMerge.clear();
+
+            //build the query vector -> this can be optimized even more using M matrix
+            this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &north, &east, &up);
+            q[0] = north;
+            q[1] = east;
+
+            //perform the query          2K (with K = size of input messages) because if some objects from the same message of the query is near enough, we may loose an actual duplicate
+            nns->knn(q, indices, dists2, 2*K, 0.0, Nabo::NNSearchF::SORT_RESULTS|Nabo::NNSearchF::ALLOW_SELF_MATCH, threshold);
+
+            std::set<int> messages_cam_idx;
+
+            //analyze results to find the actual road users to merge
+            for(int k = 0; k < indices.size() and indices[k] != -1; k++){   
+                size_t message_index = objectIndexes[indices[k]].first;
+                size_t object_index = objectIndexes[indices[k]].second;
+
+                if(check_category(input_messages[message_index].objects[object_index], input_messages[i].objects[j])){
+
+                    std::set<int> ids;
+                    for(auto idx : input_messages[message_index].objects[object_index].camera_id)
+                        ids.insert((int)idx);
+
+                    std::set<int> intersection;
+                    std::set_intersection(messages_cam_idx.begin(), messages_cam_idx.end(), ids.begin(), ids.end(),
+                                                                std::inserter(intersection, intersection.begin()));
+
+                    if(intersection.size() == 0 ){
+
+                        toMerge.push_back(indices[k]);
+                        std::set_union(messages_cam_idx.begin(), messages_cam_idx.end(), ids.begin(), ids.end(), 
+                                                std::inserter(messages_cam_idx, messages_cam_idx.begin()));
                     }
                 }
+            }
 
-                //if other objects near the reference are found 
-                if(nearest.size() != 1){
-                    //update cam_id and object_id in input_messages
-                    for(size_t x = 0; x < nearest.size(); x++){
+            //if other objects near the reference are found 
+            if(toMerge.size() > 1){
+                //update cam_id and object_id in input_messages
+                for(size_t x = 0; x < toMerge.size(); x++){
 
-                        for(size_t y = 0; y < input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.size(); y++){
-                        
-                            uint16_t cam_id_to_push = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).camera_id.at(y);
-                            uint16_t object_id_to_push = input_messages.at(nearest.at(x).message_index).objects.at(nearest.at(x).object_index).object_id.at(y);
-    
-                            for(size_t z = 0; z < nearest.size(); z++){
-                                if(z != x and std::find(input_messages.at(nearest.at(z).message_index).objects.at(nearest.at(z).object_index).camera_id.begin(),
-                                                input_messages.at(nearest.at(z).message_index).objects.at(nearest.at(z).object_index).camera_id.end(), cam_id_to_push) == 
-                                                                input_messages.at(nearest.at(z).message_index).objects.at(nearest.at(z).object_index).camera_id.end()){
-                                    input_messages.at(nearest.at(z).message_index).objects.at(nearest.at(z).object_index).camera_id.push_back(cam_id_to_push);
-                                    input_messages.at(nearest.at(z).message_index).objects.at(nearest.at(z).object_index).object_id.push_back(object_id_to_push);
-                                }
+                    for(size_t y = 0; y < input_messages.at(objectIndexes[toMerge[x]].first).objects.at(objectIndexes[toMerge[x]].second).camera_id.size(); y++){
+
+                        uint16_t cam_id_to_push = input_messages.at(objectIndexes[toMerge[x]].first).objects.at(objectIndexes[toMerge[x]].second).camera_id.at(y);
+                        uint16_t object_id_to_push = input_messages.at(objectIndexes[toMerge[x]].first).objects.at(objectIndexes[toMerge[x]].second).object_id.at(y);
+
+                        for(size_t z = 0; z < toMerge.size(); z++){
+                            if(z != x and std::find(input_messages.at(objectIndexes[toMerge[z]].first).objects.at(objectIndexes[toMerge[z]].second).camera_id.begin(),
+                                            input_messages.at(objectIndexes[toMerge[z]].first).objects.at(objectIndexes[toMerge[z]].second).camera_id.end(), cam_id_to_push) == 
+                                                            input_messages.at(objectIndexes[toMerge[z]].first).objects.at(objectIndexes[toMerge[z]].second).camera_id.end()){
+                                input_messages.at(objectIndexes[toMerge[z]].first).objects.at(objectIndexes[toMerge[z]].second).camera_id.push_back(cam_id_to_push);
+                                input_messages.at(objectIndexes[toMerge[z]].first).objects.at(objectIndexes[toMerge[z]].second).object_id.push_back(object_id_to_push);
                             }
                         }
                     }
@@ -479,6 +509,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
             }
         }
     }
+    delete nns;
 }
 
 std::map<std::pair<uint16_t, uint16_t>, RoadUser> createMapMessage(std::vector<MasaMessage> &input_messages){

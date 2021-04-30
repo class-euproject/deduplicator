@@ -8,3 +8,6 @@
 [submodule "tkCommon"]
 	path = tkCommon
 	url = https://github.com/ceccocats/tkCommon.git
+[submodule "libnabo"]
+	path = libnabo
+	url = https://github.com/ethz-asl/libnabo.git
