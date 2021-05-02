@@ -18,6 +18,10 @@ typedef void * (*THREADFUNCPTR)(void *);
     
 class Deduplicator {
 private:
+    //multiple deduplication threshold for different road users
+    const float CAR_THRESHOLD = 2.5; 
+    const float AUTOBUS_THRESHOLD = 4.0;
+    const float PERSON_THRESHOLD = 0.5;
     ClassAggregatorMessage *inCm, *outCm;
     double *adfGeoTransform;
     // Initialize tracker information

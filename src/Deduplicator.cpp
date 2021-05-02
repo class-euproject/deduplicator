@@ -300,14 +300,14 @@ RoadUser createAggregatedObject(std::vector<std::pair<uint16_t, uint16_t>>      
         } else if (latitude_vector.size() == 1){
             avg_latitude = latitude_vector.at(0);
             avg_longitude = longitude_vector.at(0);
-            // ??????????????????????
+            // compute non-weighted average
         } else {
             for(auto elem : objects){
                 latitude_vector.push_back(elem.latitude);
                 longitude_vector.push_back(elem.longitude);
             }
                             //check if accumulate returns an int
-            avg_latitude = std::accumulate(latitude_vector.begin(), latitude_vector.end(), 0) / latitude_vector.size();
+            avg_latitude  = std::accumulate( latitude_vector.begin(), latitude_vector.end(),  0) / latitude_vector.size();
             avg_longitude = std::accumulate(longitude_vector.begin(), longitude_vector.end(), 0) / longitude_vector.size();
         }
 
@@ -386,27 +386,24 @@ bool check_category(const RoadUser reference, const RoadUser candidate){
 */
 void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_messages){
     
-    const float CAR_THRESHOLD = 2.5;  //multiple deduplication threshold for different road users
-    const float AUTOBUS_THRESHOLD = 4.0;
-    const float PERSON_THRESHOLD = 0.5;
-
     double north, east, up;
     Eigen::MatrixXf M;
     Nabo::NNSearchF* nns;
 
+    const int K = 2*input_messages.size()-1;
+    Eigen::MatrixXi indices;
+    Eigen::MatrixXf dists2;
+
     std::vector<int> toMerge;
     std::vector<std::pair<size_t, size_t>> objectIndexes;
-
-    const int K = input_messages.size()-1;
-    Eigen::VectorXf q(2);
-    Eigen::VectorXi indices(2*K);
-    Eigen::VectorXf dists2(2*K);
 
     int nObjects = 0;
     for(size_t i = 0; i < input_messages.size(); i++)
         nObjects+= input_messages.at(i).objects.size();
 
     M.resize(2, nObjects);
+    indices.resize(K, nObjects);
+    dists2.resize(K, nObjects);
 
     int offset = 0;
     for(size_t i = 0; i < input_messages.size(); i++){
@@ -423,14 +420,17 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     }
 
     if(nObjects > 30){
-        nns = Nabo::NNSearchF::createKDTreeTreeHeap(M);
+        nns = Nabo::NNSearchF::createKDTreeTreeHeap(M, 2);
     } else {
-        nns = Nabo::NNSearchF::createKDTreeLinearHeap(M);
+        nns = Nabo::NNSearchF::createKDTreeLinearHeap(M, 2);
     }
 
-    for(size_t i = 0; i < input_messages.size(); i++){
+    //Perform the queries all in once: be careful, maximum radius must be the maximum between thresholds of objects (defined in Deduplicator.h)
+    nns->knn(M, indices, dists2, K, 0.0, Nabo::NNSearchF::SORT_RESULTS|Nabo::NNSearchF::ALLOW_SELF_MATCH, 4.0);
 
-        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
+    for(size_t i = 0, offset = 0; i < input_messages.size(); i++){
+
+        for(size_t j = 0; j < input_messages.at(i).objects.size(); j++, offset++){
 
             //set the appropriate threshold geven the category of the object
             float threshold;
@@ -451,23 +451,14 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
             }
 
             toMerge.clear();
-
-            //build the query vector -> this can be optimized even more using M matrix
-            this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &north, &east, &up);
-            q[0] = north;
-            q[1] = east;
-
-            //perform the query          2K (with K = size of input messages) because if some objects from the same message of the query is near enough, we may loose an actual duplicate
-            nns->knn(q, indices, dists2, 2*K, 0.0, Nabo::NNSearchF::SORT_RESULTS|Nabo::NNSearchF::ALLOW_SELF_MATCH, threshold);
-
             std::set<int> messages_cam_idx;
 
             //analyze results to find the actual road users to merge
-            for(int k = 0; k < indices.size() and indices[k] != -1; k++){   
-                size_t message_index = objectIndexes[indices[k]].first;
-                size_t object_index = objectIndexes[indices[k]].second;
+            for(int k = 0; k < indices.col(offset).size() and indices(offset, k) != -1 and dists2.col(offset)[k] <= threshold*threshold; k++){   
+                size_t message_index = objectIndexes[indices(offset, k)].first;
+                size_t object_index = objectIndexes[indices(offset, k)].second;
 
-                if(check_category(input_messages[message_index].objects[object_index], input_messages[i].objects[j])){
+                if( check_category(input_messages[message_index].objects[object_index], input_messages[i].objects[j]) ){
 
                     std::set<int> ids;
                     for(auto idx : input_messages[message_index].objects[object_index].camera_id)
@@ -479,7 +470,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 
                     if(intersection.size() == 0 ){
 
-                        toMerge.push_back(indices[k]);
+                        toMerge.push_back(indices(offset, k));
                         std::set_union(messages_cam_idx.begin(), messages_cam_idx.end(), ids.begin(), ids.end(), 
                                                 std::inserter(messages_cam_idx, messages_cam_idx.begin()));
                     }
