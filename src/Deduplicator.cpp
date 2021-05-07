@@ -427,6 +427,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 
     //Perform the queries all in once: be careful, maximum radius must be the maximum between thresholds of objects (defined in Deduplicator.h)
     nns->knn(M, indices, dists2, K, 0.0, Nabo::NNSearchF::SORT_RESULTS|Nabo::NNSearchF::ALLOW_SELF_MATCH, 4.0);
+    delete nns;
 
     for(size_t i = 0, offset = 0; i < input_messages.size(); i++){
 
@@ -454,9 +455,9 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
             std::set<int> messages_cam_idx;
 
             //analyze results to find the actual road users to merge
-            for(int k = 0; k < indices.col(offset).size() and indices(offset, k) != -1 and dists2.col(offset)[k] <= threshold*threshold; k++){   
-                size_t message_index = objectIndexes[indices(offset, k)].first;
-                size_t object_index = objectIndexes[indices(offset, k)].second;
+            for(int k = 0; k < indices.col(offset).size() and indices.col(offset)[k] != -1 and dists2.col(offset)[k] <= threshold*threshold; k++){   
+                size_t message_index = objectIndexes[indices.col(offset)[k]].first;
+                size_t object_index = objectIndexes[indices.col(offset)[k]].second;
 
                 if( check_category(input_messages[message_index].objects[object_index], input_messages[i].objects[j]) ){
 
@@ -470,7 +471,7 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
 
                     if(intersection.size() == 0 ){
 
-                        toMerge.push_back(indices(offset, k));
+                        toMerge.push_back(indices.col(offset)[k]);
                         std::set_union(messages_cam_idx.begin(), messages_cam_idx.end(), ids.begin(), ids.end(), 
                                                 std::inserter(messages_cam_idx, messages_cam_idx.begin()));
                     }
@@ -500,7 +501,6 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
             }
         }
     }
-    delete nns;
 }
 
 std::map<std::pair<uint16_t, uint16_t>, RoadUser> createMapMessage(std::vector<MasaMessage> &input_messages){
