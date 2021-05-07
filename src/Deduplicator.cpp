@@ -390,16 +390,16 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     Eigen::MatrixXf M;
     Nabo::NNSearchF* nns;
 
-    const int K = 2*input_messages.size()-1;
+    int nObjects = 0;
+    for(size_t i = 0; i < input_messages.size(); i++)
+        nObjects+= input_messages.at(i).objects.size();
+
+    const int K = 2*input_messages.size()-1 > nObjects ? nObjects : 2*input_messages.size()-1;
     Eigen::MatrixXi indices;
     Eigen::MatrixXf dists2;
 
     std::vector<int> toMerge;
     std::vector<std::pair<size_t, size_t>> objectIndexes;
-
-    int nObjects = 0;
-    for(size_t i = 0; i < input_messages.size(); i++)
-        nObjects+= input_messages.at(i).objects.size();
 
     M.resize(2, nObjects);
     indices.resize(K, nObjects);
