@@ -45,6 +45,8 @@ message("Python_INCLUDE_DIRS:${Python3_INCLUDE_DIRS}")
 #-------------------------------------------------------------------------------
 add_subdirectory(tkCommon)
 add_subdirectory(class-tracker)
+# disable openMP to improve the performances
+set(USE_OPEN_MP FALSE CACHE BOOL "Set to FALSE to not use OpenMP")
 add_subdirectory(libnabo)
 #add_subdirectory(masa_protocol)
 
