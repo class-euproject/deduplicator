@@ -40,7 +40,13 @@ void LogWriter::write(MasaMessage m) {
     for(auto const& ru: m.objects) {
         of << m.cam_idx << " " << m.t_stamp_ms << " " << ru.category << " "
            << std::fixed << std::setprecision(9) << ru.latitude << " " << ru.longitude << " "
-           << std::fixed << std::setprecision(2) << static_cast<float>(ru.speed) << " " << static_cast<float>(ru.orientation) << "\n";
+           << std::fixed << std::setprecision(2) << static_cast<float>(ru.speed) << " " << static_cast<float>(ru.orientation) << " "
+           << static_cast<double>(ru.error) << " " << ru.camera_id.size() << " ";
+        for(size_t i=0; i<ru.camera_id.size(); i++)
+            of << ru.camera_id.at(i) << " ";
+        for(size_t i=0; i<ru.object_id.size(); i++)
+            of << ru.object_id.at(i) << " ";
+        of << "\n";
     }
     for(auto const& l: m.lights) {
         of << m.cam_idx << " " << m.t_stamp_ms << " " << l.status << " "

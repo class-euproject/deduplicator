@@ -36,6 +36,12 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(/usr/include/gdal)
 
 # include_directories(/usr/include/python2.7)
+find_package(Python3 COMPONENTS Interpreter Development)
+message("Python_FOUND:${Python3_FOUND}")
+message("Python_VERSION:${Python3_VERSION}")
+message("Python_Development_FOUND:${Python3_Development_FOUND}")
+message("Python_LIBRARIES:${Python3_LIBRARIES}")
+message("Python_INCLUDE_DIRS:${Python3_INCLUDE_DIRS}")
 
 #-------------------------------------------------------------------------------
 # Submodules
@@ -43,6 +49,7 @@ include_directories(/usr/include/gdal)
 
 #add_subdirectory(tkCommon)
 add_subdirectory(class-tracker)
+add_subdirectory(libnabo)
 #add_subdirectory(masa_protocol)
 
 
@@ -53,6 +60,7 @@ add_subdirectory(class-tracker)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/include
         #${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include
+	${CMAKE_CURRENT_SOURCE_DIR}/libnabo/nabo
         ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
 #include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${CUDNN_INCLUDE_DIRS})
 
@@ -65,9 +73,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
 #target_link_libraries(classAggregator ${classAggregator_LIBS})
 
 find_package(pybind11 REQUIRED)
-include_directories(BEFORE ${PYTHON_INCLUDE_DIRS} ./include)
+include_directories(BEFORE ${Python3_INCLUDE_DIRS} ./include)
 pybind11_add_module(deduplicator SHARED src/modules.cpp src/Deduplicator.cpp src/utils.cpp src/ClassAggregatorMessage.cpp)
-target_link_libraries(deduplicator PUBLIC class-tracker gdal ${PYTHON_LIBRARIES})
+target_link_libraries(deduplicator PUBLIC class-tracker gdal nabo ${Python3_LIBRARIES})
 
 
 #-------------------------------------------------------------------------------

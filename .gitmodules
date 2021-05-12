@@ -8,3 +8,6 @@
 	path = class-tracker
 	url = https://github.com/mive93/class-tracker.git
 	branch = develop-precision
+[submodule "libnabo"]
+	path = libnabo
+	url = https://github.com/ethz-asl/libnabo.git

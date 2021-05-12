@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <chrono>
 #include <thread>
+#include <numeric>
+#include <set>
 #include "ClassAggregatorMessage.h"
 #include "utils.h"
 #include "Profiler.h"
@@ -36,10 +38,16 @@ inline bool operator==( DDstruct const& lhs, DDstruct const& rhs) { return lhs.r
 
 class Deduplicator {
 private:
+    //multiple deduplication threshold for different road users
+    const float CAR_THRESHOLD = 2.5; 
+    const float AUTOBUS_THRESHOLD = 4.0;
+    const float PERSON_THRESHOLD = 0.5;
     ClassAggregatorMessage *inCm, *outCm;
     double *adfGeoTransform;
     // Initialize tracker information
     // std::vector<Tracker> trackers;
+    // tracking::Tracking *t;
+    tracking::Tracking *edge_tr;
     int initialAge;
     int nStates;
     float dt;
@@ -50,7 +58,7 @@ private:
     bool show;
 
     float distance(const RoadUser object1, const RoadUser object2);
-    bool nearest_of(const MasaMessage message, const DDstruct ref, const float threshold, DDstruct & ris);
+    //bool nearest_of(const MasaMessage message, const DDstruct ref, const float threshold, DDstruct & ris);
     void deduplicationFromMessages(std::vector<MasaMessage> &input_messages);
 public:
 
@@ -66,9 +74,13 @@ public:
     void start();
     void end();
     std::vector<MasaMessage> filterOldMessages(std::vector<MasaMessage> input_messages);
-    void elaborateMessages(std::vector<MasaMessage> input_messages,
-                              MasaMessage &deduplicate_message);
     //void create_message_from_tracker(const std::vector<tracking::Tracker> &trackers, MasaMessage *m, );
+
+    std::vector<MasaMessage> fillTrackerInfo(std::vector<MasaMessage> input_messages);
+    void elaborateMessages(std::vector<MasaMessage>& input_messages, 
+                              MasaMessage &output_message,
+                              std::map<std::pair<uint16_t, uint16_t>, RoadUser>& last_duplicated_objects);
+    // void showUpdates();
     void *deduplicate(void *n);
     double uint8_to_speed(const uint8_t speed);
     double uint16_to_yaw(const uint16_t yaw);

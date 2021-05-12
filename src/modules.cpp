@@ -28,7 +28,7 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
         int, int>>> &input_deduplicator) {*/
 // TODO: should we return one camera_id or the whole vector? Same for object id?
 std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>>
-        compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
+                compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
                              int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids) { // std::vector<uint64_t> timestamps
     double latitude = 44.655540;
     double longitude = 10.934315;
@@ -73,7 +73,10 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
         idx++;
     }
     MasaMessage return_message;
-    deduplicator.elaborateMessages(input_messages, return_message);
+    std::map<std::pair<uint16_t, uint16_t>, RoadUser> last_duplicated_objects;
+    deduplicator.elaborateMessages(input_messages, return_message, last_duplicated_objects);
+
+
     // std::cout << "After deduplication" << std::endl;
     // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
     // tracker.predList[-1].yaw (float), tracker.traj[-1].x (double), tracker.traj[-1].y (double) (which can be directly

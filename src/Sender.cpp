@@ -39,7 +39,9 @@ void Sender::end() {
     pthread_join(writerThread, NULL);
 }
 
-/*MasaMessageOrig parse_MasaMessage_to_MasaMessageOrig(const MasaMessage message){
+
+/*
+MasaMessageOrig parse_MasaMessage_to_MasaMessageOrig(const MasaMessage message){
 
     MasaMessageOrig res;
     for(auto obj : message.objects){
