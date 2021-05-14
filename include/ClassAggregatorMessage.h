@@ -5,7 +5,7 @@
 #include <assert.h>
 #include "../masa_protocol/include/messages.hpp"
 
-using namespace masa;
+// using namespace masa;
 
 namespace fog {
 
