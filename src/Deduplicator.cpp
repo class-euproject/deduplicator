@@ -390,6 +390,7 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
 
     //copy the deduplicated objects into a single MasaMessage. Check if some objects need to be tracked
     std::vector<tracking::obj_m> objects_to_track;
+    double north, east, up;
     for(size_t i = 0; i < input_messages.size(); i++) {
         //if the current message is coming from a special vehicle that only does detection, its objects must be tracked
         if( input_messages.at(i).objects.at(0).category == C_marelli1 || 
@@ -401,18 +402,22 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
             for(size_t j = 1; j < input_messages.at(i).objects.size(); j++) {
                 //if the size of the object_id is <= 1, it means that it is not a duplicated of another tracked object, so we need to track it
                 if(input_messages.at(i).objects.at(j).object_id.size() <= 1){
-                    double north, east, up;
                     this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
                     objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1));
                 //otherwise the object can be pushed because is the same object of another (that is tracked). So actually we don't need to track it 
                 } else {
+                    this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
+                    objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1));
                     output_message.objects.push_back(input_messages.at(i).objects.at(j));  
                 }
             }
         //if the current message is coming from a any other source, its objects are already tracked
         } else {
-            for(size_t j = 0; j < input_messages.at(i).objects.size(); j++)
+            for(size_t j = 0; j < input_messages.at(i).objects.size(); j++) {
+                this->gc.geodetic2Enu(input_messages.at(i).objects.at(j).latitude, input_messages.at(i).objects.at(j).longitude, 0, &east, &north, &up);
+                objects_to_track.push_back(tracking::obj_m(east, north, 0, input_messages.at(i).objects.at(j).category, 1, 1));
                 output_message.objects.push_back(input_messages.at(i).objects.at(j)); 
+            }
         }
 
         for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
@@ -430,11 +435,14 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
 /**
  * Get the tracker information and set the frame data to the viewer with the updated information
 */
+// void Deduplicator::showUpdates(MasaMessage &output_message) {
 void Deduplicator::showUpdates() {
     double latitude, longitude, altitude;
     //visualize the trackers
     int map_pix_x, map_pix_y; 
     std::vector<tracker_line>  lines;
+
+    // for(size_t i = 0; i < output_messages.size(); i++) {
     for(auto tr : this->t->getTrackers()) {
         if(tr.predList.size()) {
             tracker_line line;

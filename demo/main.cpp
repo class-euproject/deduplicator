@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     pthread_mutexattr_destroy(&mutexattr);
     
     gRun = true;
-    V3D = false;
+    V3D = true;
     // start the viewer
     fog::AggregatorViewer v(param.pngFile, param.visualization);
     if(param.visualization) {

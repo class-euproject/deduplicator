@@ -72,8 +72,8 @@ tk::common::Vector3<float> AggregatorViewer::convertPosition2D(int x, int y, flo
 }
 
 tk::common::Vector3<float> AggregatorViewer::convertPosition3D(int x, int y, float z) {
-    float new_x = ((float)x/(float)frame_width - 0.5)*(float)frame_width;
-    float new_y = -((float)y/(float)frame_height -0.5)*(float)frame_height;
+    float new_x = ((float)x/(float)frame_width - 0.5)*(float)frame_height;
+    float new_y = -((float)y/(float)frame_height -0.5)*(float)frame_width;
     return tk::common::Vector3<float>{new_x, new_y, z};
 }
 
