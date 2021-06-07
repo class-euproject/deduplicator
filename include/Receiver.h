@@ -24,11 +24,12 @@ private:
     bool lw_flag;
     pthread_t snifferThread;
     int port;
+    int bsc_reciving_port;
     int socketDesc;
     Communicator<MasaMessage> *comm;
 public:    
     Receiver(ClassAggregatorMessage &sharedMessage,
-             int port_, bool logWriterFlag);
+             int port_, int bsc_reciving_port_, bool logWriterFlag);
     ~Receiver();
     void start();
     void end();

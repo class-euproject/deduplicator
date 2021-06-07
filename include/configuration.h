@@ -5,6 +5,7 @@
 #include <string>
 #include <algorithm>
 #include <yaml-cpp/yaml.h>
+#include <getopt.h>
 
 namespace fog {
 
@@ -12,6 +13,7 @@ struct Parameters_t {
     std::vector<int> inputPortList;
     std::vector<int> outputPortList;
     std::vector<std::string> outputIpList;
+    int bsc_reciving_port;
     int camIdx;
     bool visualization;
     bool edge_log_saving;

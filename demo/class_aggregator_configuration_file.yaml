@@ -2,6 +2,7 @@
 ---
 input_ports: 8888
 output_ports: 9999
+bsc_reciving_port: 18888
 output_ips: 127.0.0.1
 cam_idx: 0
 tif_map: ../demo/data/MASA_4670.tif

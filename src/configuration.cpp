@@ -36,6 +36,7 @@ void readParametersYaml(const std::string &camerasParams, Parameters_t *par) {
     YAML::Node config = YAML::LoadFile(camerasParams);
     par->inputPortList = strListToIntList(getParamList(config["input_ports"].as<std::string>()));
     par->outputPortList = strListToIntList(getParamList(config["output_ports"].as<std::string>()));
+    par->bsc_reciving_port = config["bsc_reciving_port"].as<int>();
     par->outputIpList = getParamList(config["output_ips"].as<std::string>());
     par->camIdx = config["cam_idx"].as<int>();
     par->visualization = config["visualization"].as<bool>();
@@ -60,6 +61,7 @@ bool readParameters(int argc, char **argv, Parameters_t *param) {
         param->aggr_log_saving = false;
         param->tifFile = "../demo/data/MASA_4670.tif";
         param->pngFile = "../demo/data/MASA_4670.png";
+        param->bsc_reciving_port = 18888;
         return true;
     }
     std::string help =  "class-aggregator demo\nCommand:\n"
