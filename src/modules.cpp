@@ -3,6 +3,9 @@
 #include <tuple>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <sys/socket.h> //socket
+#include <arpa/inet.h>  //inet_addr
+#include <communicator.hpp>
 
 namespace py = pybind11;
 
@@ -46,6 +49,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     std::vector<MasaMessage> input_messages;
     int idx, idy;
     idx = 0;
+    // retrieving and preparing data coming from the cameras
     for (const auto& vec_info : input_deduplicator) {
         MasaMessage message;
         idy = 0;
@@ -63,19 +67,30 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
             r.object_id.push_back(std::get<5>(info)); // tracker id
             r.idx = idx;
             r.idy = idy;
-            // TODO: check what values should be placed in r.camera_id (vector<int>)
 
-            // TODO: message.t_stamp_ms = timestamps[idx];
             message.objects.push_back(r);
             idy++;
         }
         input_messages.push_back(message);
         idx++;
     }
+
+    // retrieving and preparing data from the cars by using a client udp socket at 18888
+    Communicator<MasaMessage> *comm = new Communicator<MasaMessage>(SOCK_DGRAM);
+    char *ip = "192.168.12.4";
+    int port = 18888;
+    comm->open_client_socket(ip, port);
+    int socketDesc = comm->get_socket();
+    if (socketDesc == -1)
+        perror("error in socket");
+    MasaMessage *m = new MasaMessage();
+    std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
+    comm->receive_message(socketDesc, m);
+    input_messages.push_back(*m);
+
     MasaMessage return_message;
     std::map<std::pair<uint16_t, uint16_t>, RoadUser> last_duplicated_objects;
     deduplicator.elaborateMessages(input_messages, return_message, last_duplicated_objects);
-
 
     // std::cout << "After deduplication" << std::endl;
     // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
