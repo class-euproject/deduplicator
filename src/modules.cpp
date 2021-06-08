@@ -74,7 +74,7 @@ int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
 
     struct timeval tv;
     tv.tv_sec = 0;
-    tv.tv_usec = 10000;
+    tv.tv_usec = 50000;
     if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) >= 0) {
         if (recvfrom(socket_desc, client_message, message_size, 0,
                  ( struct sockaddr *) &cliaddr, (socklen_t *)&len) < 0) {
@@ -220,12 +220,21 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     // std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
     std::cout << "Before loop" << std::endl;
     for (const RoadUser& ru : return_message.objects) {
+        std::cout << "Car id is: " << ru.camera_id.at(0) << ", object type is " << int(ru.category) << std::endl;
+        if (ru.camera_id.at(0) == 20 || ru.camera_id.at(0) == 21 || ru.camera_id.at(0) == 30 || ru.camera_id.at(0) == 31
+                || ru.camera_id.at(0) == 32 || ru.camera_id.at(0) == 40) {
+            // data coming from the cars have no bounding box
+            std::cout << "Connected car tracked" << std::endl;
+            pixel_x = pixel_y = pixel_w = pixel_h = 0;
+        } else {
+            // data coming from the cameras have bounding box
+            pixel_x = std::get<6>(input_deduplicator[ru.idx][ru.idy]);
+            pixel_y = std::get<7>(input_deduplicator[ru.idx][ru.idy]);
+            pixel_w = std::get<8>(input_deduplicator[ru.idx][ru.idy]);
+            pixel_h = std::get<9>(input_deduplicator[ru.idx][ru.idy]);
+        }
         lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
         lon = std::get<1>(input_deduplicator[ru.idx][ru.idy]);
-        pixel_x = std::get<6>(input_deduplicator[ru.idx][ru.idy]);
-        pixel_y = std::get<7>(input_deduplicator[ru.idx][ru.idy]);
-        pixel_w = std::get<8>(input_deduplicator[ru.idx][ru.idy]);
-        pixel_h = std::get<9>(input_deduplicator[ru.idx][ru.idy]);
         vel = deduplicator.uint8_to_speed(ru.speed);
         yaw = deduplicator.uint16_to_yaw(ru.orientation);
         // TODO: this -> info[i++] = std::make_tuple(ru.camera_id, ru.object_id, int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
