@@ -162,6 +162,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
         std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
         if (m->num_objects > 0)
             input_messages.push_back(*m);
+        close(socketDesc);
     } else {
         std::cout << "Could not open server socket in port " << port << std::endl;
     }
