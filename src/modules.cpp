@@ -3,9 +3,14 @@
 #include <tuple>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
 #include <sys/socket.h> //socket
 #include <arpa/inet.h>  //inet_addr
+#include <sys/types.h>
+#include <fcntl.h>
+#include <netinet/in.h>
 #include <communicator.hpp>
+
 
 namespace py = pybind11;
 
@@ -24,6 +29,35 @@ Categories category_parse(int class_number) {
         default:
             return C_rover; // TODO: No Categories for unknown or default class
     }
+}
+
+void deserialize_coords(std::string s, MasaMessage *m)
+{
+    std::istringstream is(s);
+    cereal::PortableBinaryInputArchive retrieve(is);
+    try
+    {
+        retrieve(*m);
+    }
+    catch (std::bad_alloc& ba)
+    {
+        std::cout << "Packet drop"<<std::endl;
+    }
+}
+
+int receive_message(int socket_desc, MasaMessage *m)
+{
+    int message_size = 50000;
+    char client_message[message_size];
+    memset(client_message, 0, message_size);
+
+    int len;
+    struct sockaddr_in cliaddr;
+    recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
+                         ( struct sockaddr *) &cliaddr, (socklen_t *)&len);
+    std::string s((char *)client_message, message_size);
+    deserialize_coords(s, m);
+    return 0;
 }
 
 /*std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, double, double, int, int, int, int>>>
@@ -76,17 +110,43 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     }
 
     // retrieving and preparing data from the cars by using a client udp socket at 18888
-    Communicator<MasaMessage> *comm = new Communicator<MasaMessage>(SOCK_DGRAM);
-    char *ip = "192.168.12.4";
+    char *ip = "192.168.12.4"; // TODO: deduplicator needs to be fixed to be executed in fog node 4
     int port = 18888;
-    comm->open_client_socket(ip, port);
+    /*int socketDesc = socket(AF_INET, SOCK_DGRAM, 0);
+    if (socketDesc != -1) { // created correctly
+        printf("Created socket to %s:%d\n\n", ip, port);
+        struct sockaddr_in server;
+        server.sin_addr.s_addr = inet_addr(ip);
+        server.sin_family = AF_INET;
+        server.sin_port = htons(port);
+        // connect to remote server
+        if (connect(socketDesc, (struct sockaddr *)&server, sizeof(server)) >= 0) {
+            MasaMessage *m = new MasaMessage();
+            std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
+            receive_message(socketDesc, m);
+            if (m->num_objects > 0)
+                input_messages.push_back(*m);
+        }
+    } else {
+        std::cout << "Could not open udp socket for the car connection" << std::endl;
+        // perror("error in socket");
+    }*/
+
+    Communicator<MasaMessage> *comm = new Communicator<MasaMessage>(SOCK_DGRAM);
+    // comm->open_client_socket(ip, port);
+    std::cout << "Opening server socket" << std::endl;
+    comm->open_server_socket(port);
     int socketDesc = comm->get_socket();
-    if (socketDesc == -1)
-        perror("error in socket");
-    MasaMessage *m = new MasaMessage();
-    std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
-    comm->receive_message(socketDesc, m);
-    input_messages.push_back(*m);
+    if (socketDesc != -1) {
+        std::cout << "Server socket created" << std::endl;
+        MasaMessage *m = new MasaMessage();
+        std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
+        comm->receive_message(socketDesc, m);
+        if (m->num_objects > 0)
+            input_messages.push_back(*m);
+    } else {
+        std::cout << "Could not open server socket in port " << port << std::endl;
+    }
 
     MasaMessage return_message;
     std::map<std::pair<uint16_t, uint16_t>, RoadUser> last_duplicated_objects;
