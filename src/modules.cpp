@@ -45,7 +45,7 @@ void deserialize_coords(std::string s, MasaMessage *m)
     }
 }
 
-int receive_message(int socket_desc, MasaMessage *m)
+/*int receive_message(int socket_desc, MasaMessage *m)
 {
     int message_size = 50000;
     char client_message[message_size];
@@ -55,6 +55,22 @@ int receive_message(int socket_desc, MasaMessage *m)
     struct sockaddr_in cliaddr;
     recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
                          ( struct sockaddr *) &cliaddr, (socklen_t *)&len);
+    std::string s((char *)client_message, message_size);
+    deserialize_coords(s, m);
+    return 0;
+}*/
+
+int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
+{
+    int message_size = 50000;
+    char client_message[message_size];
+    memset(client_message, 0, message_size);
+
+    int len;
+    struct sockaddr_in cliaddr;
+    int socket_desc = comm.get_socket();
+    recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
+             ( struct sockaddr *) &cliaddr, (socklen_t *)&len);
     std::string s((char *)client_message, message_size);
     deserialize_coords(s, m);
     return 0;
@@ -140,8 +156,10 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     if (socketDesc != -1) {
         std::cout << "Server socket created" << std::endl;
         MasaMessage *m = new MasaMessage();
+        std::cout << "Before receive_messages" << std::endl;
+        // comm->receive_message(socketDesc, m);
+        receive_message(*comm, m);
         std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
-        comm->receive_message(socketDesc, m);
         if (m->num_objects > 0)
             input_messages.push_back(*m);
     } else {
