@@ -151,16 +151,16 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
 
     Communicator<MasaMessage> *comm = new Communicator<MasaMessage>(SOCK_DGRAM);
     // comm->open_client_socket(ip, port);
-    std::cout << "Opening server socket" << std::endl;
+    // std::cout << "Opening server socket" << std::endl;
     comm->open_server_socket(port);
     int socketDesc = comm->get_socket();
     if (socketDesc != -1) {
-        std::cout << "Server socket created" << std::endl;
+        // std::cout << "Server socket created" << std::endl;
         MasaMessage *m = new MasaMessage();
-        std::cout << "Before receive_messages" << std::endl;
+        // std::cout << "Before receive_messages" << std::endl;
         // comm->receive_message(socketDesc, m);
         receive_message(*comm, m);
-        std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
+        // std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
         if (m->num_objects > 0)
             input_messages.push_back(*m);
         close(socketDesc);
@@ -168,11 +168,11 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
         std::cout << "Could not open server socket in port " << port << std::endl;
     }
 
-    std::cout << "Before elaborate messages" << std::endl;
+    // std::cout << "Before elaborate messages" << std::endl;
     MasaMessage return_message;
     std::map<std::pair<uint16_t, uint16_t>, RoadUser> last_duplicated_objects;
     deduplicator.elaborateMessages(input_messages, return_message, last_duplicated_objects);
-    std::cout << "After elaborate messages" << std::endl;
+    // std::cout << "After elaborate messages" << std::endl;
 
     // std::cout << "After deduplication" << std::endl;
     // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
@@ -221,9 +221,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
                                     // TODO: camera_id and object_id?
 
     }
-    // std::cout << "After creating info" << std::endl;
-    // std::cout << "INFO SIZE IS " << info.size() << std::endl;
-    std::cout << "After loop" << std::endl;
+    // std::cout << "After loop" << std::endl;
     return std::make_tuple(return_message.t_stamp_ms, info);
 }
 
