@@ -69,7 +69,8 @@ int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
     int len;
     struct sockaddr_in cliaddr;
     int socket_desc = comm.get_socket();
-    recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
+    // recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
+    recvfrom(socket_desc, client_message, message_size, 0,
              ( struct sockaddr *) &cliaddr, (socklen_t *)&len);
     std::string s((char *)client_message, message_size);
     deserialize_coords(s, m);
@@ -167,9 +168,11 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
         std::cout << "Could not open server socket in port " << port << std::endl;
     }
 
+    std::cout << "Before elaborate messages" << std::endl;
     MasaMessage return_message;
     std::map<std::pair<uint16_t, uint16_t>, RoadUser> last_duplicated_objects;
     deduplicator.elaborateMessages(input_messages, return_message, last_duplicated_objects);
+    std::cout << "After elaborate messages" << std::endl;
 
     // std::cout << "After deduplication" << std::endl;
     // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
@@ -201,6 +204,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>
             info(return_message.num_objects);
     // std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
+    std::cout << "Before loop" << std::endl;
     for (const RoadUser& ru : return_message.objects) {
         lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
         lon = std::get<1>(input_deduplicator[ru.idx][ru.idy]);
@@ -219,6 +223,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     }
     // std::cout << "After creating info" << std::endl;
     // std::cout << "INFO SIZE IS " << info.size() << std::endl;
+    std::cout << "After loop" << std::endl;
     return std::make_tuple(return_message.t_stamp_ms, info);
 }
 
