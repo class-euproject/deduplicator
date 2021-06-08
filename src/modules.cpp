@@ -69,8 +69,7 @@ int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
     int len;
     struct sockaddr_in cliaddr;
     int socket_desc = comm.get_socket();
-    // recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
-    recvfrom(socket_desc, client_message, message_size, 0,
+    recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
              ( struct sockaddr *) &cliaddr, (socklen_t *)&len);
     std::string s((char *)client_message, message_size);
     deserialize_coords(s, m);
