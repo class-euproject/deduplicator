@@ -48,9 +48,9 @@ void * Receiver::receive(void *n) {
             mess.objects = (*m).objects;
             mess.t_stamp_ms = (*m).t_stamp_ms;*/
             bsc_forwarder.send_message(m, this->bsc_reciving_port);
+            //std::cout << (*m).cam_idx << " " << (*m).t_stamp_ms << " " << (*m).objects.size() << std::endl;
         }
         
-        //std::cout << (*m).cam_idx << " " << (*m).t_stamp_ms << " " << (*m).objects.size() << std::endl;
 
         this->cm->insertMessage(*m);
         prof.tock("insert message");

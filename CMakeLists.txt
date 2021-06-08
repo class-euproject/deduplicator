@@ -85,3 +85,5 @@ target_link_libraries(class-aggregator classAggregator)
 add_executable(test-aggregator demo/test.cpp)
 target_link_libraries(test-aggregator classAggregator)
 
+add_executable(forwarder_bsc demo/forwarder_bsc.cpp)
+target_link_libraries(forwarder_bsc classAggregator)
