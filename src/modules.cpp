@@ -220,12 +220,12 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     // std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
     std::cout << "Before loop" << std::endl;
     for (const RoadUser& ru : return_message.objects) {
-        std::cout << "Car id is: " << ru.camera_id.at(0) << ", object type is " << int(ru.category) << std::endl;
+        int category = int(ru.category);
         if (ru.camera_id.at(0) == 20 || ru.camera_id.at(0) == 21 || ru.camera_id.at(0) == 30 || ru.camera_id.at(0) == 31
                 || ru.camera_id.at(0) == 32 || ru.camera_id.at(0) == 40) {
             // data coming from the cars have no bounding box
-            std::cout << "Connected car tracked" << std::endl;
             pixel_x = pixel_y = pixel_w = pixel_h = 0;
+            category = ru.camera_id.at(0);
         } else {
             // data coming from the cameras have bounding box
             pixel_x = std::get<6>(input_deduplicator[ru.idx][ru.idy]);
@@ -239,7 +239,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
         yaw = deduplicator.uint16_to_yaw(ru.orientation);
         // TODO: this -> info[i++] = std::make_tuple(ru.camera_id, ru.object_id, int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
         // TODO:     OR just first camera id and object id (instead of whole vectors)
-        info[i++] = std::make_tuple(ru.camera_id.at(0), ru.object_id.at(0), int(ru.category), vel, yaw, lat, lon,
+        info[i++] = std::make_tuple(ru.camera_id.at(0), ru.object_id.at(0), category, vel, yaw, lat, lon,
                                     pixel_x, pixel_y, pixel_w, pixel_h); // TODO: or should we return entire vectors
                                     // TODO: camera_id and object_id?
 
