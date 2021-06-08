@@ -60,6 +60,8 @@ void deserialize_coords(std::string s, MasaMessage *m)
     return 0;
 }*/
 
+
+// udp socket with timeout of 10 ms
 int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
 {
     int message_size = 50000;
@@ -69,10 +71,22 @@ int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
     int len;
     struct sockaddr_in cliaddr;
     int socket_desc = comm.get_socket();
-    recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
-             ( struct sockaddr *) &cliaddr, (socklen_t *)&len);
-    std::string s((char *)client_message, message_size);
-    deserialize_coords(s, m);
+
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 10000;
+    if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) >= 0) {
+        if (recvfrom(socket_desc, client_message, message_size, 0,
+                 ( struct sockaddr *) &cliaddr, (socklen_t *)&len) < 0) {
+            std::cout << "Timeout reached, keep on going without data from the car" << std:: endl;
+        } else {
+            // we have read information coming from the car
+            std::string s((char *)client_message, message_size);
+            deserialize_coords(s, m);
+        }
+    } else {
+        std::cout << "Error in setsockopt" << std::endl;
+    }
     return 0;
 }
 
@@ -152,6 +166,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     // comm->open_client_socket(ip, port);
     std::cout << "Opening server socket" << std::endl;
     comm->open_server_socket(port);
+
     int socketDesc = comm->get_socket();
     if (socketDesc != -1) {
         std::cout << "Server socket created" << std::endl;
