@@ -45,6 +45,16 @@ void deserialize_coords(std::string s, MasaMessage *m)
     }
 }
 
+void prepare_message(MasaMessage *m)
+{
+    m->cam_idx = 4;
+    m->t_stamp_ms = time_in_ms();
+    m->num_objects = 0;
+
+    m->objects.clear();
+
+}
+
 /*int receive_message(int socket_desc, MasaMessage *m)
 {
     int message_size = 50000;
@@ -61,8 +71,8 @@ void deserialize_coords(std::string s, MasaMessage *m)
 }*/
 
 
-// udp socket with timeout of 10 ms
-int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
+// udp socket with timeout of 5 ms
+int receive_messages(Communicator<MasaMessage> &comm, std::vector<MasaMessage> *input_messages)
 {
     int message_size = 50000;
     char client_message[message_size];
@@ -74,10 +84,42 @@ int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
 
     struct timeval tv;
     tv.tv_sec = 0;
-    tv.tv_usec = 50000;
-    if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) >= 0) {
+    tv.tv_usec = 5000;
+    bool receive = true;
+    MasaMessage m;
+    while (receive) {
+        // if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) >= 0) {
+            std::cout << "Receiving message with timeout of 5 ms" << std::endl;
+            int res = recvfrom(socket_desc, client_message, message_size, 0,
+                     (struct sockaddr *) &cliaddr, (socklen_t *) &len);
+            std::cout << "Recvfrom size is " << res << " bytes" << std::endl;
+            if (res) {
+                // we have read information coming from the car
+                std::cout << "Message actually received: ";
+                std::string s((char *) client_message, message_size);
+                deserialize_coords(s, &m);
+                std::cout << m.num_objects << " objects coming from camera " << m.cam_idx << std::endl;
+                if (m.num_objects > 0) {
+                    std::cout << "Message has more than 0 objects inside" << std::endl;
+                    input_messages->push_back(m);
+                }
+                else {
+                    std::cout << "Message does not have any object inside, dummy message. Exiting loop..." << std::endl;
+                    break;
+                }
+                m = MasaMessage();
+            } else {
+                std::cout << "No data received from recvfrom" << std::endl;
+                receive = false;
+            }
+        /*} else {
+            std::cout << "Error in setsockopt" << std::endl;
+        }*/
+
+    }
+    /*if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) >= 0) {
         if (recvfrom(socket_desc, client_message, message_size, 0,
-                 ( struct sockaddr *) &cliaddr, (socklen_t *)&len) < 0) {
+                     ( struct sockaddr *) &cliaddr, (socklen_t *)&len) < 0) {
             std::cout << "Timeout reached, keep on going without data from the car" << std:: endl;
         } else {
             // we have read information coming from the car
@@ -86,7 +128,7 @@ int receive_message(Communicator<MasaMessage> &comm, MasaMessage *m)
         }
     } else {
         std::cout << "Error in setsockopt" << std::endl;
-    }
+    }*/
     return 0;
 }
 
@@ -95,8 +137,8 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
         int, int>>> &input_deduplicator) {*/
 // TODO: should we return one camera_id or the whole vector? Same for object id?
 std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>>
-                compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
-                             int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids) { // std::vector<uint64_t> timestamps
+compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
+        int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids) { // std::vector<uint64_t> timestamps
     double latitude = 44.655540;
     double longitude = 10.934315;
     double *adfGeoTransform = (double *) calloc(6, sizeof(double));
@@ -141,45 +183,37 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
 
     // retrieving and preparing data from the cars by using a client udp socket at 18888
     char *ip = "192.168.12.4"; // TODO: deduplicator needs to be fixed to be executed in fog node 4
-    int port = 18888;
-    /*int socketDesc = socket(AF_INET, SOCK_DGRAM, 0);
-    if (socketDesc != -1) { // created correctly
-        printf("Created socket to %s:%d\n\n", ip, port);
-        struct sockaddr_in server;
-        server.sin_addr.s_addr = inet_addr(ip);
-        server.sin_family = AF_INET;
-        server.sin_port = htons(port);
-        // connect to remote server
-        if (connect(socketDesc, (struct sockaddr *)&server, sizeof(server)) >= 0) {
-            MasaMessage *m = new MasaMessage();
-            std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
-            receive_message(socketDesc, m);
-            if (m->num_objects > 0)
-                input_messages.push_back(*m);
-        }
-    } else {
-        std::cout << "Could not open udp socket for the car connection" << std::endl;
-        // perror("error in socket");
-    }*/
+    int port_receiving = 18888;
+    int port_sending = 18889;
 
-    Communicator<MasaMessage> *comm = new Communicator<MasaMessage>(SOCK_DGRAM);
-    // comm->open_client_socket(ip, port);
-    std::cout << "Opening server socket" << std::endl;
-    comm->open_server_socket(port);
+    Communicator<MasaMessage> *comm_send = new Communicator<MasaMessage>(SOCK_DGRAM);
+    MasaMessage *dummy = new MasaMessage;
+    prepare_message(dummy);
+    Communicator<MasaMessage> *comm_recv = new Communicator<MasaMessage>(SOCK_DGRAM);
+    // comm_recv->open_client_socket(ip, port_receiving);
+    std::cout << "Opening server/receiving socket" << std::endl;
+    comm_recv->open_server_socket(port_receiving);
+    std::cout << "Opening client/sending socket" << std::endl;
+    comm_send->open_client_socket(ip, port_sending);
 
-    int socketDesc = comm->get_socket();
+    std::vector<MasaMessage> input_messages_car;
+    int socketDesc = comm_recv->get_socket();
     if (socketDesc != -1) {
         std::cout << "Server socket created" << std::endl;
-        MasaMessage *m = new MasaMessage();
         std::cout << "Before receive_messages" << std::endl;
-        // comm->receive_message(socketDesc, m);
-        receive_message(*comm, m);
-        std::cout << "Receiving data from the cars with num objects: " << m->num_objects << std::endl;
-        if (m->num_objects > 0)
-            input_messages.push_back(*m);
+        input_messages_car.clear();
+        std::cout << "Dummy message sent" << std::endl;
+        comm_send->send_message(dummy, port_sending);
+        receive_messages(*comm_recv, &input_messages_car);
+        input_messages_car = deduplicator.fillTrackerInfo(input_messages_car);
+        for (const MasaMessage& m : input_messages_car) {
+            std::cout << "Receiving data from the cars with num objects: " << m.num_objects << std::endl;
+            if (m.num_objects > 0)
+                input_messages.push_back(m);
+        }
         close(socketDesc);
     } else {
-        std::cout << "Could not open server socket in port " << port << std::endl;
+        std::cout << "Could not open server socket in port_receiving " << port_receiving << std::endl;
     }
 
     std::cout << "Before elaborate messages" << std::endl;
@@ -188,12 +222,6 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     deduplicator.elaborateMessages(input_messages, return_message, last_duplicated_objects);
     std::cout << "After elaborate messages" << std::endl;
 
-    // std::cout << "After deduplication" << std::endl;
-    // camera_id (uint32_t), timestamp (uint64_t), tracker.id (int), tracker.cl (int), tracker.predList[-1].vel (float),
-    // tracker.predList[-1].yaw (float), tracker.traj[-1].x (double), tracker.traj[-1].y (double) (which can be directly
-    // converted to lat, lon)
-    // std::vector<std::tuple<uint32_t, int, int, float, float, double, double, int, int, int, int>>
-    //    info(deduplicator.t->getTrackers().size());
     int i = 0;
     double lat, lon, alt;
     float vel, yaw;
@@ -222,7 +250,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
     for (const RoadUser& ru : return_message.objects) {
         int category = int(ru.category);
         if (ru.camera_id.at(0) == 20 || ru.camera_id.at(0) == 21 || ru.camera_id.at(0) == 30 || ru.camera_id.at(0) == 31
-                || ru.camera_id.at(0) == 32 || ru.camera_id.at(0) == 40) {
+            || ru.camera_id.at(0) == 32 || ru.camera_id.at(0) == 40) {
             // data coming from the cars have no bounding box
             pixel_x = pixel_y = pixel_w = pixel_h = 0;
             category = ru.camera_id.at(0);
@@ -241,7 +269,7 @@ std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, doubl
         // TODO:     OR just first camera id and object id (instead of whole vectors)
         info[i++] = std::make_tuple(ru.camera_id.at(0), ru.object_id.at(0), category, vel, yaw, lat, lon,
                                     pixel_x, pixel_y, pixel_w, pixel_h); // TODO: or should we return entire vectors
-                                    // TODO: camera_id and object_id?
+        // TODO: camera_id and object_id?
 
     }
     std::cout << "After loop" << std::endl;
@@ -272,21 +300,21 @@ PYBIND11_MODULE(deduplicator, m) {
             .def_readwrite("time_to_change", &TrafficLight::time_to_change)
             .def_readwrite("status", &TrafficLight::status)
             .def(py::pickle(
-                [](py::object self) {
-                    return py::make_tuple(self.attr("latitude"), self.attr("longitude"), self.attr("orientation"),
-                                          self.attr("time_to_change"), self.attr("status"));
-                },
-                [](const py::tuple &t) {
-                    if (t.size() != 4)
-                        throw std::runtime_error("Invalid state");
-                    TrafficLight trafficLight;
-                    trafficLight.latitude = t[0].cast<float>();
-                    trafficLight.longitude = t[1].cast<float>();
-                    trafficLight.orientation = t[2].cast<uint8_t>();
-                    trafficLight.time_to_change = t[3].cast<uint8_t>();
-                    trafficLight.status = t[4].cast<LightStatus>(); // TODO
-                    return trafficLight;
-                }
+                    [](py::object self) {
+                        return py::make_tuple(self.attr("latitude"), self.attr("longitude"), self.attr("orientation"),
+                                              self.attr("time_to_change"), self.attr("status"));
+                    },
+                    [](const py::tuple &t) {
+                        if (t.size() != 4)
+                            throw std::runtime_error("Invalid state");
+                        TrafficLight trafficLight;
+                        trafficLight.latitude = t[0].cast<float>();
+                        trafficLight.longitude = t[1].cast<float>();
+                        trafficLight.orientation = t[2].cast<uint8_t>();
+                        trafficLight.time_to_change = t[3].cast<uint8_t>();
+                        trafficLight.status = t[4].cast<LightStatus>(); // TODO
+                        return trafficLight;
+                    }
             ));
 
     py::class_<RoadUser>(m, "RoadUser")
@@ -297,21 +325,21 @@ PYBIND11_MODULE(deduplicator, m) {
             .def_readwrite("orientation", &RoadUser::orientation)
             .def_readwrite("category", &RoadUser::category)
             .def(py::pickle(
-                [](py::object self) {
-                    return py::make_tuple(self.attr("latitude"), self.attr("longitude"), self.attr("speed"),
-                                          self.attr("orientation"), self.attr("category"));
-                },
-                [](const py::tuple &t) {
-                    if (t.size() != 5)
-                        throw std::runtime_error("Invalid state");
-                    RoadUser roadUser;
-                    roadUser.latitude = t[0].cast<float>();
-                    roadUser.longitude = t[1].cast<float>();
-                    roadUser.speed = t[2].cast<uint8_t>();
-                    roadUser.orientation = t[3].cast<uint16_t>();
-                    roadUser.category = t[4].cast<Categories>();
-                    return roadUser;
-                }
+                    [](py::object self) {
+                        return py::make_tuple(self.attr("latitude"), self.attr("longitude"), self.attr("speed"),
+                                              self.attr("orientation"), self.attr("category"));
+                    },
+                    [](const py::tuple &t) {
+                        if (t.size() != 5)
+                            throw std::runtime_error("Invalid state");
+                        RoadUser roadUser;
+                        roadUser.latitude = t[0].cast<float>();
+                        roadUser.longitude = t[1].cast<float>();
+                        roadUser.speed = t[2].cast<uint8_t>();
+                        roadUser.orientation = t[3].cast<uint16_t>();
+                        roadUser.category = t[4].cast<Categories>();
+                        return roadUser;
+                    }
             ));
 
     py::class_<MasaMessage>(m, "MasaMessage")
@@ -322,21 +350,21 @@ PYBIND11_MODULE(deduplicator, m) {
             .def_readwrite("objects", &MasaMessage::objects)
             .def_readwrite("lights", &MasaMessage::lights)
             .def(py::pickle(
-                [](py::object self) {
-                    return py::make_tuple(self.attr("cam_idx"), self.attr("t_stamp_ms"), self.attr("num_objects"),
-                                          self.attr("objects"), self.attr("lights"));
-                },
-                [](const py::tuple &t) {
-                    if (t.size() != 5)
-                        throw std::runtime_error("Invalid state!");
-                    MasaMessage msg;
-                    msg.cam_idx = t[0].cast<uint32_t>();
-                    msg.t_stamp_ms = t[1].cast<uint64_t>();
-                    msg.num_objects = t[2].cast<uint16_t>();
-                    msg.objects = t[3].cast<std::vector<RoadUser>>();
-                    msg.lights = t[4].cast<std::vector<TrafficLight>>();
-                    return msg;
-                }
+                    [](py::object self) {
+                        return py::make_tuple(self.attr("cam_idx"), self.attr("t_stamp_ms"), self.attr("num_objects"),
+                                              self.attr("objects"), self.attr("lights"));
+                    },
+                    [](const py::tuple &t) {
+                        if (t.size() != 5)
+                            throw std::runtime_error("Invalid state!");
+                        MasaMessage msg;
+                        msg.cam_idx = t[0].cast<uint32_t>();
+                        msg.t_stamp_ms = t[1].cast<uint64_t>();
+                        msg.num_objects = t[2].cast<uint16_t>();
+                        msg.objects = t[3].cast<std::vector<RoadUser>>();
+                        msg.lights = t[4].cast<std::vector<TrafficLight>>();
+                        return msg;
+                    }
             ));
 
     /*
