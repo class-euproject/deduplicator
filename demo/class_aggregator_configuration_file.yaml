@@ -1,12 +1,14 @@
 %YAML:1.0
 ---
-input_ports: 8888
-output_ports: 9999
-output_ips: 127.0.0.1
-cam_idx: 0
-tif_map: ../demo/data/MASA_4670.tif
-png_map: ../demo/data/MASA_4670.png
-
-visualization: false
-edge_log_saving: true
-aggr_log_saving: true
+# input_ports: 8888
+# bsc_reciving_port: 18890
+output_ports: 8888, 8889, 9000, 9001, 8888, 8888, 9999, 8888, 8888, 8888, 8888, 8888, 8888, 9000
+output_ips: 10.10.0.6, 10.10.0.6, 10.10.0.6, 10.10.0.6, 10.10.0.7, 155.185.4.206, 155.185.4.206, 155.185.4.187, 155.185.5.1, 10.10.0.11, 10.10.0.8, 10.10.0.13, 10.0.6.237, 127.0.0.1
+# cam_idx: 4
+# tif_map: ../demo/data/MASA_4670.tif
+# png_map: ../demo/data/MASA_4670.png
+# visualization: false
+# edge_log_saving: true
+# aggr_log_saving: true
+# #output_ports: 8888, 8889, 9000, 9001, 8888, 9999, 8888, 8888, 8888, 8888, 9999, 8888
+# #output_ips: 10.10.0.6, 10.10.0.6, 10.10.0.6, 10.10.0.6, 10.10.0.7, 10.0.5.29, 10.0.5.15, 10.0.5.30, 192.168.12.5, 155.185.4.206, 155.185.4.206, 155.185.4.187

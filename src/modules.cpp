@@ -1,37 +1,17 @@
 #include "Deduplicator.h"
 #include <ctime>
-#include <tuple>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include <sys/socket.h> //socket
 #include <arpa/inet.h>  //inet_addr
-#include <sys/types.h>
-#include <fcntl.h>
-#include <netinet/in.h>
 #include <communicator.hpp>
-
+#include <yaml-cpp/yaml.h>
+#include <chrono>
 
 namespace py = pybind11;
 
-Categories category_parse(int class_number) {
-    switch (class_number) {
-        case 0:
-            return C_person;
-        case 1:
-            return C_car;
-        case 3:
-            return C_bus;
-        case 4:
-            return C_motorbike;
-        case 5:
-            return C_bycicle;
-        default:
-            return C_rover; // TODO: No Categories for unknown or default class
-    }
-}
-
-void deserialize_coords(std::string s, MasaMessage *m)
+void deserialize_coords(const std::string& s, MasaMessage *m)
 {
     std::istringstream is(s);
     cereal::PortableBinaryInputArchive retrieve(is);
@@ -50,92 +30,226 @@ void prepare_message(MasaMessage *m)
     m->cam_idx = 4;
     m->t_stamp_ms = time_in_ms();
     m->num_objects = 0;
-
     m->objects.clear();
-
 }
 
-/*int receive_message(int socket_desc, MasaMessage *m)
-{
-    int message_size = 50000;
-    char client_message[message_size];
-    memset(client_message, 0, message_size);
 
-    int len;
-    struct sockaddr_in cliaddr;
-    recvfrom(socket_desc, client_message, message_size, MSG_DONTWAIT,
-                         ( struct sockaddr *) &cliaddr, (socklen_t *)&len);
-    std::string s((char *)client_message, message_size);
-    deserialize_coords(s, m);
-    return 0;
+/***************       MASA MESSAGE GENERATION AND TX TO CARS       ***************/
+struct Parameters_t {
+    std::vector<int> outputPortList;
+    std::vector<std::string> outputIpList;
+};
+
+/**
+ * From the Yaml file we read an unique string. So we split it by the delimiter.
+*/
+std::vector<std::string> getParamList(std::string s) {
+    size_t pos;
+    std::vector<std::string> tokens;
+    std::string delimiter = ", ";
+    while ((pos = s.find(delimiter)) != std::string::npos) {
+        tokens.push_back(s.substr(0, pos));
+        s.erase(0, pos + delimiter.length());
+    }
+    tokens.push_back(s);
+    return tokens;
+}
+
+/**
+ * Convert the input strings vector to ints vector.
+*/
+std::vector<int> strListToIntList(const std::vector<std::string>& s) {
+    std::vector<int> converted;
+    for(const auto& elem : s) {
+        converted.push_back(std::stoi(elem));
+    }
+    return converted;
+}
+
+/*
+ * Fill the Parameters_t struct with Yaml file info.
+ */
+void readParametersYaml(const std::string &camerasParams, Parameters_t *par) {
+    std::string cam, tmp;
+    YAML::Node config = YAML::LoadFile(camerasParams);
+    par->outputPortList = strListToIntList(getParamList(config["output_ports"].as<std::string>()));
+    par->outputIpList = getParamList(config["output_ips"].as<std::string>());
+}
+
+void initialize_communicators(std::vector<Communicator<MasaMessage>>& comms, Parameters_t *params) {
+    int i = 0;
+    for (int port : params->outputPortList) {
+        Communicator<MasaMessage> p;
+        comms.push_back(p);
+        std::string ip = params->outputIpList.at(i);
+        comms.at(i).open_client_socket((char *)ip.c_str(), port);
+        i++;
+    }
+}
+
+void send_message_to_car(MasaMessage& m) {
+    std::string param_file ="/root/COMPSs-obstacle-detection/class_aggregator_configuration_file.yaml";
+    Parameters_t params;
+    readParametersYaml(param_file, &params);
+    std::vector<Communicator<MasaMessage>> *comms = new std::vector<Communicator<MasaMessage>>(SOCK_DGRAM);;
+    initialize_communicators(*comms, &params);
+    std::vector<int> objects_to_remove; // TODO: REMOVE LINE
+    for (int i = 0; i < comms->size(); i++) {
+        for (int j = 0; j < m.objects.size(); ++j) { // TODO: REMOVE ALL FOR AND EXTRA FOR IN THE END
+            RoadUser ru = m.objects.at(j);
+            if (ru.category == 20 || ru.category == 21 || ru.category == 30 || ru.category == 31 || ru.category == 32 ||
+                ru.category == 40) {
+                if (ru.camera_id.at(0) != 20 && ru.camera_id.at(0) != 21 && ru.camera_id.at(0) != 30 &&
+                    ru.camera_id.at(0) != 31
+                    && ru.camera_id.at(0) != 32 && ru.camera_id.at(0) != 40) {
+                    std::cout << "SKIPPING DUE TO ERROR IN DEDUPLICATOR WITH CONNECTED CAR DETECTED BY CAMERA"
+                              << std::endl;
+                    objects_to_remove.push_back(j);
+                }
+            }
+            std::cout << m.cam_idx << " " << m.objects.at(j).camera_id.at(0) << " " << m.objects.at(j).category << " "
+                      << m.objects.at(j).object_id.at(0) << std::endl;
+        }
+        for (int object_to_remove : objects_to_remove)
+            m.objects.erase(m.objects.begin() + object_to_remove);
+
+        comms->at(i).send_message(&m, params.outputPortList[i]);
+    }
+}
+/***************              ***************/
+
+
+
+/*void printRoadUser(const RoadUser& ru){
+
+    std::cout << std::setprecision(10) << ru.category << " " << ru.latitude << " " << ru.longitude << " " << (int) ru.speed
+              << " " << ru.orientation << " " << ru.error << " " << ru.camera_id.size();
+    for( auto elem : ru.camera_id){
+        std::cout << " " << elem;
+    }
+    for( auto elem : ru.object_id){
+        std::cout << " " << elem;
+    }
+    std::cout << std::endl;
 }*/
 
-
+/***************       UDP SOCKET CONNECTION       ***************/
 // udp socket with timeout of 5 ms
 int receive_messages(Communicator<MasaMessage> &comm, std::vector<MasaMessage> *input_messages)
 {
     int message_size = 50000;
     char client_message[message_size];
     memset(client_message, 0, message_size);
-
     int len;
-    struct sockaddr_in cliaddr;
+    struct sockaddr_in cliaddr{};
     int socket_desc = comm.get_socket();
 
-    struct timeval tv;
+    struct timeval tv{};
     tv.tv_sec = 0;
-    tv.tv_usec = 5000;
+    tv.tv_usec = 5000; // 10000;
     bool receive = true;
-    MasaMessage m;
     while (receive) {
-        // if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) >= 0) {
-            std::cout << "Receiving message with timeout of 5 ms" << std::endl;
+        if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) >= 0) {
+            // auto start = std::chrono::system_clock::now();
             int res = recvfrom(socket_desc, client_message, message_size, 0,
                      (struct sockaddr *) &cliaddr, (socklen_t *) &len);
-            std::cout << "Recvfrom size is " << res << " bytes" << std::endl;
-            if (res) {
+            /*auto end = std::chrono::system_clock::now();
+            std::chrono::duration<double> elapsed_seconds = end-start;
+            std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+            std::cout << "Finished blocked socket receiving at " << std::ctime(&end_time)
+                      << "elapsed time: " << elapsed_seconds.count() << std::endl;
+            std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch());
+            std::cout << "Timestamp after receiving " << ms.count() << std::endl;*/
+            if (res > 0) {
                 // we have read information coming from the car
-                std::cout << "Message actually received: ";
                 std::string s((char *) client_message, message_size);
+                MasaMessage m;
                 deserialize_coords(s, &m);
-                std::cout << m.num_objects << " objects coming from camera " << m.cam_idx << std::endl;
-                if (m.num_objects > 0) {
-                    std::cout << "Message has more than 0 objects inside" << std::endl;
+                if (m.objects.size() > 0) {
                     input_messages->push_back(m);
                 }
                 else {
-                    std::cout << "Message does not have any object inside, dummy message. Exiting loop..." << std::endl;
+                    // std::cout << "Message does not have any object inside, dummy message. Exiting loop..." << std::endl;
                     break;
                 }
-                m = MasaMessage();
             } else {
-                std::cout << "No data received from recvfrom" << std::endl;
+                // std::cout << "No data received from recvfrom" << std::endl;
                 receive = false;
             }
-        /*} else {
-            std::cout << "Error in setsockopt" << std::endl;
-        }*/
-
-    }
-    /*if (setsockopt(socket_desc, SOL_SOCKET, SO_RCVTIMEO, &tv,sizeof(tv)) >= 0) {
-        if (recvfrom(socket_desc, client_message, message_size, 0,
-                     ( struct sockaddr *) &cliaddr, (socklen_t *)&len) < 0) {
-            std::cout << "Timeout reached, keep on going without data from the car" << std:: endl;
         } else {
-            // we have read information coming from the car
-            std::string s((char *)client_message, message_size);
-            deserialize_coords(s, m);
+            std::cout << "Error in setsockopt" << std::endl;
         }
-    } else {
-        std::cout << "Error in setsockopt" << std::endl;
-    }*/
+    }
     return 0;
 }
+/***************              ***************/
 
-/*std::tuple<uint64_t, std::vector<std::tuple<uint32_t, int, int, float, float, double, double, int, int, int, int>>>
-compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
-        int, int>>> &input_deduplicator) {*/
-// TODO: should we return one camera_id or the whole vector? Same for object id?
+
+int convert_category_from_berkeley_to_dedu(int category_berkeley) {
+    int category_dedu;
+    switch (category_berkeley) {
+        case 0:
+            category_dedu = C_person;
+            break;
+        case 1:
+        case 2:
+            category_dedu = C_car;
+            break;
+        case 3:
+            category_dedu = C_bus;
+            break;
+        case 4:
+            category_dedu = C_motorbike;
+            break;
+        case 5:
+        case 6:
+            category_dedu = C_bycicle;
+            break;
+        default:
+            std::cout << "REACH HERE WHEN IT SHOULD NOT with category " << category_berkeley << std::endl;
+            category_dedu = C_rover; // TODO: No Categories for unknown or default class
+    }
+    return category_dedu;
+}
+
+int convert_category_from_dedu_to_berkeley(Categories category_dedu) {
+    int category_berkeley;
+    switch (category_dedu) {
+        case C_person:
+            category_berkeley = 0;
+            break;
+        case C_car:
+            category_berkeley = 1;
+            break;
+        case C_bus:
+            category_berkeley = 3;
+            break;
+        case C_motorbike:
+            category_berkeley = 4;
+            break;
+        case C_bycicle:
+            category_berkeley = 5;
+            break;
+        case C_marelli1:
+            category_berkeley = 20;
+            break;
+        case C_marelli2:
+            category_berkeley = 21;
+            break;
+        case C_quattroporte:
+            category_berkeley = 30;
+            break;
+        case C_levante:
+            category_berkeley = 31;
+            break;
+        default:
+            std::cout << "SHOULDNT REACH HERE with category " << category_dedu << std::endl;
+            category_berkeley = C_rover; // TODO: No Categories for unknown or default class
+    }
+    return category_berkeley;
+}
+
+
 std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>>
 compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
         int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids) { // std::vector<uint64_t> timestamps
@@ -148,15 +262,13 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
     adfGeoTransform[3] = 44.6595;
     adfGeoTransform[4] = 0;
     adfGeoTransform[5] = -8.79695e-07;
-    /* std::string tifFile;
-     * adfGeoTransform = (double *)malloc(6 * sizeof(double));
-     * readTiff((char *)tifFile.c_str(), adfGeoTransform);*/
     static fog::Deduplicator deduplicator(adfGeoTransform, latitude, longitude);
     std::vector<MasaMessage> input_messages;
     int idx, idy;
     idx = 0;
     // retrieving and preparing data coming from the cameras
     for (const auto& vec_info : input_deduplicator) {
+        std::cout << "Info from the camera " << cam_ids[idx] << std::endl;
         MasaMessage message;
         idy = 0;
         for (auto info : vec_info) {
@@ -165,24 +277,26 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
             RoadUser r;
             r.latitude = static_cast<float>(std::get<0>(info));
             r.longitude = static_cast<float>(std::get<1>(info));
-            r.error = 1.0; //0.0;
+            r.error = 1.0; //0.0; // TODO: not set this here but in tracker/class-edge
             r.speed = std::get<3>(info);
             r.orientation = std::get<4>(info);
-            r.category = static_cast<Categories>(std::get<2>(info));
+            r.category = static_cast<Categories>(convert_category_from_berkeley_to_dedu(std::get<2>(info)));
             r.camera_id.push_back(cam_ids[idx]); // camera id
             r.object_id.push_back(std::get<5>(info)); // tracker id
             r.idx = idx;
             r.idy = idy;
-
             message.objects.push_back(r);
             idy++;
+            std::cout << std::get<5>(info) << " " << r.latitude << " " << r.longitude << " " << r.category << std::endl;
         }
+        message.num_objects = message.objects.size();
+        message.cam_idx = cam_ids[idx];
         input_messages.push_back(message);
         idx++;
     }
 
     // retrieving and preparing data from the cars by using a client udp socket at 18888
-    char *ip = "192.168.12.4"; // TODO: deduplicator needs to be fixed to be executed in fog node 4
+    std::string ip = "192.168.12.4"; // TODO: deduplicator needs to be fixed to be executed in fog node 4
     int port_receiving = 18888;
     int port_sending = 18889;
 
@@ -191,88 +305,78 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
     prepare_message(dummy);
     Communicator<MasaMessage> *comm_recv = new Communicator<MasaMessage>(SOCK_DGRAM);
     // comm_recv->open_client_socket(ip, port_receiving);
-    std::cout << "Opening server/receiving socket" << std::endl;
     comm_recv->open_server_socket(port_receiving);
-    std::cout << "Opening client/sending socket" << std::endl;
-    comm_send->open_client_socket(ip, port_sending);
+    std::vector<char> cstr(ip.c_str(), ip.c_str() + ip.size() + 1);
+    comm_send->open_client_socket(cstr.data(), port_sending);
 
     std::vector<MasaMessage> input_messages_car;
+    int socketDescClient = comm_send->get_socket();
     int socketDesc = comm_recv->get_socket();
     if (socketDesc != -1) {
-        std::cout << "Server socket created" << std::endl;
-        std::cout << "Before receive_messages" << std::endl;
         input_messages_car.clear();
-        std::cout << "Dummy message sent" << std::endl;
+        // std::cout << "Dummy message sent" << std::endl;
         comm_send->send_message(dummy, port_sending);
+        std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch());
+        // std::cout << "Timestamp after sending " << ms.count() << std::endl;
         receive_messages(*comm_recv, &input_messages_car);
-        input_messages_car = deduplicator.fillTrackerInfo(input_messages_car);
+        // input_messages_car = deduplicator.fillTrackerInfo(input_messages_car); // not needed any more as tracker is performed in forwarder
         for (const MasaMessage& m : input_messages_car) {
-            std::cout << "Receiving data from the cars with num objects: " << m.num_objects << std::endl;
+            /* std::cout << "Receiving data from the cars with num objects: " << m.num_objects << " and source id is "
+                    << m.cam_idx<< std::endl; */
             if (m.num_objects > 0)
                 input_messages.push_back(m);
         }
         close(socketDesc);
+        close(socketDescClient);
     } else {
         std::cout << "Could not open server socket in port_receiving " << port_receiving << std::endl;
     }
 
-    std::cout << "Before elaborate messages" << std::endl;
     MasaMessage return_message;
     std::map<std::pair<uint16_t, uint16_t>, RoadUser> last_duplicated_objects;
     deduplicator.elaborateMessages(input_messages, return_message, last_duplicated_objects);
-    std::cout << "After elaborate messages" << std::endl;
 
-    int i = 0;
-    double lat, lon, alt;
+    double lat, lon;
     float vel, yaw;
     int pixel_x, pixel_y, pixel_w, pixel_h;
-    /*for (const tracking::Tracker& tracker : deduplicator.t->getTrackers()) {
-        vel = yaw = 0.0f;
-        lat = std::get<0>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
-        lon = std::get<1>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
-        pixel_x = std::get<6>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
-        pixel_y = std::get<7>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
-        pixel_w = std::get<8>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
-        pixel_h = std::get<9>(input_deduplicator[tracker.idx_masa][tracker.idy_masa]);
-        // deduplicator.gc.enu2Geodetic(tracker.traj.back().x, tracker.traj.back().y, 0, &lat, &lon, &alt);
-        if (tracker.predList.size() > 0) {
-            vel = tracker.predList.back().vel;
-            yaw = tracker.predList.back().yaw;
-        }
-        info[i++] = std::make_tuple(20939, tracker.id, tracker.cl, vel, yaw, lat, lon, pixel_x, pixel_y, pixel_w,
-                                    pixel_h); // TODO: remove hardcoded CamId
-    }*/
-    // std::vector<std::tuple<std::vector<int>, std::vector<int>, int, double, double, double, double, int, int, int, int>>
-    std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>
-            info(return_message.num_objects);
-    // std::cout << "RETURN MESSAGE HAS " << return_message.num_objects << std::endl;
-    std::cout << "Before loop" << std::endl;
+    std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>> info;
+    int category_berkeley;
     for (const RoadUser& ru : return_message.objects) {
-        int category = int(ru.category);
+        category_berkeley = convert_category_from_dedu_to_berkeley(ru.category);
+        if (ru.camera_id.at(0) == 0) { // TODO: REMOVE FILTER
+            std::cout << "IT SHOULD NOT BE HERE" << std::endl;
+            continue;
+        }
+        if (ru.category == 20 || ru.category == 21 || ru.category == 30 || ru.category == 31 || ru.category == 32 || ru.category == 40) { // TODO: REMOVE FILTER
+            if (ru.camera_id.at(0) != 20 && ru.camera_id.at(0) != 21 && ru.camera_id.at(0) != 30 && ru.camera_id.at(0) != 31
+                && ru.camera_id.at(0) != 32 && ru.camera_id.at(0) != 40) {
+                std::cout << "SKIPPING DUE TO ERROR IN DEDUPLICATOR WITH CONNECTED CAR DETECTED BY CAMERA" << std::endl;
+                continue;
+            }
+        }
         if (ru.camera_id.at(0) == 20 || ru.camera_id.at(0) == 21 || ru.camera_id.at(0) == 30 || ru.camera_id.at(0) == 31
-            || ru.camera_id.at(0) == 32 || ru.camera_id.at(0) == 40) {
+                || ru.camera_id.at(0) == 32 || ru.camera_id.at(0) == 40) {
             // data coming from the cars have no bounding box
             pixel_x = pixel_y = pixel_w = pixel_h = 0;
-            category = ru.camera_id.at(0);
+            lat = ru.latitude;
+            lon = ru.longitude;
+            vel = deduplicator.uint8_to_speed(ru.speed);
+            yaw = deduplicator.uint16_to_yaw(ru.orientation);
         } else {
             // data coming from the cameras have bounding box
+            lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
+            lon = std::get<1>(input_deduplicator[ru.idx][ru.idy]);
+            vel = std::get<3>(input_deduplicator[ru.idx][ru.idy]);
+            yaw = std::get<4>(input_deduplicator[ru.idx][ru.idy]);
             pixel_x = std::get<6>(input_deduplicator[ru.idx][ru.idy]);
             pixel_y = std::get<7>(input_deduplicator[ru.idx][ru.idy]);
             pixel_w = std::get<8>(input_deduplicator[ru.idx][ru.idy]);
             pixel_h = std::get<9>(input_deduplicator[ru.idx][ru.idy]);
         }
-        lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
-        lon = std::get<1>(input_deduplicator[ru.idx][ru.idy]);
-        vel = deduplicator.uint8_to_speed(ru.speed);
-        yaw = deduplicator.uint16_to_yaw(ru.orientation);
-        // TODO: this -> info[i++] = std::make_tuple(ru.camera_id, ru.object_id, int(ru.category), vel, yaw, lat, lon, pixel_x, pixel_y,
-        // TODO:     OR just first camera id and object id (instead of whole vectors)
-        info[i++] = std::make_tuple(ru.camera_id.at(0), ru.object_id.at(0), category, vel, yaw, lat, lon,
-                                    pixel_x, pixel_y, pixel_w, pixel_h); // TODO: or should we return entire vectors
-        // TODO: camera_id and object_id?
-
+        info.emplace_back(ru.camera_id.at(0), ru.object_id.at(0), category_berkeley, vel, yaw, lat, lon,
+                                    pixel_x, pixel_y, pixel_w, pixel_h);
     }
-    std::cout << "After loop" << std::endl;
+    send_message_to_car(return_message);
     return std::make_tuple(return_message.t_stamp_ms, info);
 }
 
@@ -300,19 +404,19 @@ PYBIND11_MODULE(deduplicator, m) {
             .def_readwrite("time_to_change", &TrafficLight::time_to_change)
             .def_readwrite("status", &TrafficLight::status)
             .def(py::pickle(
-                    [](py::object self) {
+                    [](const py::object& self) {
                         return py::make_tuple(self.attr("latitude"), self.attr("longitude"), self.attr("orientation"),
                                               self.attr("time_to_change"), self.attr("status"));
                     },
                     [](const py::tuple &t) {
-                        if (t.size() != 4)
+                        if (t.size() != 5)
                             throw std::runtime_error("Invalid state");
-                        TrafficLight trafficLight;
+                        TrafficLight trafficLight{};
                         trafficLight.latitude = t[0].cast<float>();
                         trafficLight.longitude = t[1].cast<float>();
                         trafficLight.orientation = t[2].cast<uint8_t>();
                         trafficLight.time_to_change = t[3].cast<uint8_t>();
-                        trafficLight.status = t[4].cast<LightStatus>(); // TODO
+                        trafficLight.status = t[4].cast<LightStatus>();
                         return trafficLight;
                     }
             ));
@@ -325,7 +429,7 @@ PYBIND11_MODULE(deduplicator, m) {
             .def_readwrite("orientation", &RoadUser::orientation)
             .def_readwrite("category", &RoadUser::category)
             .def(py::pickle(
-                    [](py::object self) {
+                    [](const py::object& self) {
                         return py::make_tuple(self.attr("latitude"), self.attr("longitude"), self.attr("speed"),
                                               self.attr("orientation"), self.attr("category"));
                     },
@@ -350,7 +454,7 @@ PYBIND11_MODULE(deduplicator, m) {
             .def_readwrite("objects", &MasaMessage::objects)
             .def_readwrite("lights", &MasaMessage::lights)
             .def(py::pickle(
-                    [](py::object self) {
+                    [](const py::object& self) {
                         return py::make_tuple(self.attr("cam_idx"), self.attr("t_stamp_ms"), self.attr("num_objects"),
                                               self.attr("objects"), self.attr("lights"));
                     },

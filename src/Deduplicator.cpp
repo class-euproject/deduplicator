@@ -172,7 +172,7 @@ std::vector<MasaMessage> Deduplicator::fillTrackerInfo(std::vector<MasaMessage> 
         if(input_messages.at(i).objects.size() <= 1 || 
             input_messages.at(i).objects.size() > 1 && input_messages.at(i).objects.at(1).object_id.size()!=0) 
             continue;
-        
+
         //TODO: only a message with no tracker information is supported. For each of this kind of message a tracker is needed 
         if(count_no_tracking_messages == 1) {
             std::cout<<"WARNING!!! TOO MANY MESSAGES WITHOUT TRACKING INFORMATION\n";
@@ -357,7 +357,6 @@ RoadUser createAggregatedObject(std::vector<std::pair<uint16_t, uint16_t>>      
             
             avg_speed = std::accumulate(speed_vector.begin(), speed_vector.end(), 0) / speed_vector.size();
         }
-        // std::cout << "AFTER SECOND FOR in computeMeanOfDuplicatedObjects" << std::endl;
 
         if(orientation_vector.size() > 0){
             //if 2 or more data are available compute the average of the orientation
@@ -381,7 +380,6 @@ RoadUser createAggregatedObject(std::vector<std::pair<uint16_t, uint16_t>>      
     } else {
         aggregatedObject = current_message_map[key_to_keep];
     }
-    // std::cout << "AFTER ELSE in computeMeanOfDuplicatedObjects" << std::endl;
 
     aggregatedObject.camera_id = {key_to_keep.first};
     aggregatedObject.object_id = {key_to_keep.second};
@@ -391,8 +389,6 @@ RoadUser createAggregatedObject(std::vector<std::pair<uint16_t, uint16_t>>      
             aggregatedObject.object_id.push_back(key.second);
         }
     }
-    // std::cout << "AFTER LAST FOR in computeMeanOfDuplicatedObjects" << std::endl;
-
     return aggregatedObject;
 }
 
@@ -421,6 +417,8 @@ void Deduplicator::deduplicationFromMessages(std::vector<MasaMessage> &input_mes
     double north, east, up;
     Eigen::MatrixXf M;
     Nabo::NNSearchF* nns;
+
+    printMessages(input_messages);
 
     int nObjects = 0;
     for(size_t i = 0; i < input_messages.size(); i++)
@@ -540,7 +538,6 @@ std::map<std::pair<uint16_t, uint16_t>, RoadUser> createMapMessage(std::vector<M
     std::map<std::pair<uint16_t, uint16_t>, RoadUser> current_messages_map;
     for(size_t i = 0; i < input_messages.size(); i++){
         for(size_t j = 0; j < input_messages.at(i).objects.size(); j++){
-
             //update the current message map for fast retrieval of data in other locations (eventually you need to update each pair contained)
             std::pair<uint16_t, uint16_t> object_key = std::pair<uint16_t, uint16_t>(input_messages.at(i).objects.at(j).camera_id[0], input_messages.at(i).objects.at(j).object_id[0]);
             if(current_messages_map.find(object_key) == current_messages_map.end()){
@@ -658,7 +655,6 @@ void removeDuplicatedObjects(std::vector<MasaMessage> &input_messages, std::map<
                         for(size_t x = 0; x < map_keys_of_current_object.size(); x++){
                             current_table[map_keys_of_current_object[x]] = object_to_keep;
                         }
-                        // std::cout << "AFTER SIXTH FOR INSIDE deduplicationFromMessages" << std::endl;
 
                         //actually here you should put the object in the correct message but it should work like this. 
                         deduplicated_messages[i].objects.push_back(object_to_keep);
@@ -747,13 +743,13 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
     output_message.objects.clear();
     output_message.t_stamp_ms = time_in_ms();
 
-    // std::cout << "BEFORE FILTER INPUT SIZE IS " << input_messages[0].objects.size() << std::flush << std::endl;
     //Standard deduplication method
     if(input_messages.size() > 1){
         deduplicationFromMessages(input_messages);
         std::map<std::pair<uint16_t, uint16_t>, RoadUser> current_message_map = createMapMessage(input_messages);
         removeDuplicatedObjects(input_messages, last_duplicated_objects, current_message_map);
     }
+
     //copy the deduplicated objects into a single MasaMessage.
     std::vector<tracking::obj_m> objects_to_track;
     for(size_t i = 0; i < input_messages.size(); i++) {
@@ -763,8 +759,6 @@ void Deduplicator::elaborateMessages(std::vector<MasaMessage> &input_messages, M
         for(size_t j = 0; j < input_messages.at(i).lights.size(); j++)
             output_message.lights.push_back(input_messages.at(i).lights.at(j));
     }
-    // std::cout << "OUTSIDE IF AFTER TRACK" << std::flush << std::endl;
-
     output_message.num_objects = output_message.objects.size();
 }
 
