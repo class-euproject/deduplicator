@@ -250,9 +250,17 @@ int convert_category_from_dedu_to_berkeley(Categories category_dedu) {
 }
 
 
-std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>>>
+/***
+ *
+ * input_deduplicator: vector of vectors in which each inner vector contains the information of a detected object (lat,
+ *                     lon, cat, speed, yaw, tracker_id) by a given camera
+ * cam_ids: vector with the ids of the cameras correlating the cam_id to the vector<vector<...>> input_deduplicator
+ * frames: Used when displaying the output of several videos to correlate the objects of a given video to its corresponding frame
+ *
+ * ***/
+std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int, int>>>
 compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
-        int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids) { // std::vector<uint64_t> timestamps
+        int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids, std::vector<uint32_t> frames) { // std::vector<uint64_t> timestamps
     double latitude = 44.655540;
     double longitude = 10.934315;
     double *adfGeoTransform = (double *) calloc(6, sizeof(double));
@@ -339,8 +347,9 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
     double lat, lon;
     float vel, yaw;
     int pixel_x, pixel_y, pixel_w, pixel_h;
-    std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int>> info;
+    std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int, int>> info;
     int category_berkeley;
+    int frame;
     for (const RoadUser& ru : return_message.objects) {
         category_berkeley = convert_category_from_dedu_to_berkeley(ru.category);
         if (ru.camera_id.at(0) == 0) { // TODO: REMOVE FILTER
@@ -356,12 +365,13 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
         }
         if (ru.camera_id.at(0) == 20 || ru.camera_id.at(0) == 21 || ru.camera_id.at(0) == 30 || ru.camera_id.at(0) == 31
                 || ru.camera_id.at(0) == 32 || ru.camera_id.at(0) == 40) {
-            // data coming from the cars have no bounding box
+            // data coming from the cars have no bounding box nor frame
             pixel_x = pixel_y = pixel_w = pixel_h = 0;
             lat = ru.latitude;
             lon = ru.longitude;
             vel = deduplicator.uint8_to_speed(ru.speed);
             yaw = deduplicator.uint16_to_yaw(ru.orientation);
+            frame = -1; // TODO: objects coming from car do not belong to a specific frame. How to select in which frame are they displayed?
         } else {
             // data coming from the cameras have bounding box
             lat = std::get<0>(input_deduplicator[ru.idx][ru.idy]);
@@ -372,9 +382,10 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
             pixel_y = std::get<7>(input_deduplicator[ru.idx][ru.idy]);
             pixel_w = std::get<8>(input_deduplicator[ru.idx][ru.idy]);
             pixel_h = std::get<9>(input_deduplicator[ru.idx][ru.idy]);
+            frame = frames[ru.idx];
         }
         info.emplace_back(ru.camera_id.at(0), ru.object_id.at(0), category_berkeley, vel, yaw, lat, lon,
-                                    pixel_x, pixel_y, pixel_w, pixel_h);
+                                    pixel_x, pixel_y, pixel_w, pixel_h, frame);
     }
     send_message_to_car(return_message);
     return std::make_tuple(return_message.t_stamp_ms, info);

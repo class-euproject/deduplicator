@@ -12,9 +12,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declara
 #-------------------------------------------------------------------------------
 # External Libraries
 #-------------------------------------------------------------------------------
-find_package(Eigen3 REQUIRED)
+# find_package(Eigen3 REQUIRED)
+find_package(PkgConfig)
+pkg_search_module(Eigen3 REQUIRED eigen3)
 include_directories(${EIGEN3_INCLUDE_DIR})
-find_package(yaml-cpp REQUIRED)
+# find_package(yaml-cpp REQUIRED)
+pkg_search_module(yaml-cpp_PC REQUIRED yaml-cpp)
 
 include_directories(/usr/include/gdal)
 
@@ -45,7 +48,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
 		${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
 
 find_package(pybind11 REQUIRED)
-find_package(yaml-cpp REQUIRED)
 include_directories(BEFORE ${Python3_INCLUDE_DIRS} ./include)
 pybind11_add_module(deduplicator SHARED src/modules.cpp src/Deduplicator.cpp src/utils.cpp src/ClassAggregatorMessage.cpp)
 target_link_libraries(deduplicator PUBLIC class-tracker gdal yaml-cpp nabo ${Python3_LIBRARIES})
