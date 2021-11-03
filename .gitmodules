@@ -1,6 +1,6 @@
 [submodule "masa_protocol"]
 	path = masa_protocol
-	url = https://git.hipert.unimore.it/rcavicchioli/masa_protocol.git
+	url = https://gitlab.bsc.es/ppc/benchmarks/masa_protocol.git
 [submodule "tkCommon"]
 	path = tkCommon
 	url = https://github.com/ceccocats/tkCommon.git
