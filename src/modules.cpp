@@ -7,6 +7,7 @@
 #include <arpa/inet.h>  //inet_addr
 #include <communicator.hpp>
 #include <yaml-cpp/yaml.h>
+#include <sys/stat.h>
 #include <chrono>
 
 namespace py = pybind11;
@@ -87,33 +88,40 @@ void initialize_communicators(std::vector<Communicator<MasaMessage>>& comms, Par
     }
 }
 
+inline bool file_exists(const std::string& filename) {
+    struct stat buffer;
+    return (stat (filename.c_str(), &buffer) == 0);
+}
+
 void send_message_to_car(MasaMessage& m) {
     std::string param_file ="/root/COMPSs-obstacle-detection/class_aggregator_configuration_file.yaml";
-    Parameters_t params;
-    readParametersYaml(param_file, &params);
-    std::vector<Communicator<MasaMessage>> *comms = new std::vector<Communicator<MasaMessage>>(SOCK_DGRAM);;
-    initialize_communicators(*comms, &params);
-    std::vector<int> objects_to_remove; // TODO: REMOVE LINE
-    for (int i = 0; i < comms->size(); i++) {
-        for (int j = 0; j < m.objects.size(); ++j) { // TODO: REMOVE ALL FOR AND EXTRA FOR IN THE END
-            RoadUser ru = m.objects.at(j);
-            if (ru.category == 20 || ru.category == 21 || ru.category == 30 || ru.category == 31 || ru.category == 32 ||
-                ru.category == 40) {
-                if (ru.camera_id.at(0) != 20 && ru.camera_id.at(0) != 21 && ru.camera_id.at(0) != 30 &&
-                    ru.camera_id.at(0) != 31
-                    && ru.camera_id.at(0) != 32 && ru.camera_id.at(0) != 40) {
-                    std::cout << "SKIPPING DUE TO ERROR IN DEDUPLICATOR WITH CONNECTED CAR DETECTED BY CAMERA"
-                              << std::endl;
-                    objects_to_remove.push_back(j);
+    if (file_exists(param_file)) {
+        Parameters_t params;
+        readParametersYaml(param_file, &params);
+        std::vector<Communicator<MasaMessage>> *comms = new std::vector<Communicator<MasaMessage>>(SOCK_DGRAM);;
+        initialize_communicators(*comms, &params);
+        std::vector<int> objects_to_remove; // TODO: REMOVE LINE
+        for (int i = 0; i < comms->size(); i++) {
+            for (int j = 0; j < m.objects.size(); ++j) { // TODO: REMOVE ALL FOR AND EXTRA FOR IN THE END
+                RoadUser ru = m.objects.at(j);
+                if (ru.category == 20 || ru.category == 21 || ru.category == 30 || ru.category == 31 || ru.category == 32 ||
+                    ru.category == 40) {
+                    if (ru.camera_id.at(0) != 20 && ru.camera_id.at(0) != 21 && ru.camera_id.at(0) != 30 &&
+                        ru.camera_id.at(0) != 31
+                        && ru.camera_id.at(0) != 32 && ru.camera_id.at(0) != 40) {
+                        std::cout << "SKIPPING DUE TO ERROR IN DEDUPLICATOR WITH CONNECTED CAR DETECTED BY CAMERA"
+                                  << std::endl;
+                        objects_to_remove.push_back(j);
+                    }
                 }
+                std::cout << m.cam_idx << " " << m.objects.at(j).camera_id.at(0) << " " << m.objects.at(j).category << " "
+                          << m.objects.at(j).object_id.at(0) << std::endl;
             }
-            std::cout << m.cam_idx << " " << m.objects.at(j).camera_id.at(0) << " " << m.objects.at(j).category << " "
-                      << m.objects.at(j).object_id.at(0) << std::endl;
-        }
-        for (int object_to_remove : objects_to_remove)
-            m.objects.erase(m.objects.begin() + object_to_remove);
+            for (int object_to_remove : objects_to_remove)
+                m.objects.erase(m.objects.begin() + object_to_remove);
 
-        comms->at(i).send_message(&m, params.outputPortList[i]);
+            comms->at(i).send_message(&m, params.outputPortList[i]);
+        }
     }
 }
 /***************              ***************/
