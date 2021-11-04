@@ -114,8 +114,8 @@ void send_message_to_car(MasaMessage& m) {
                         objects_to_remove.push_back(j);
                     }
                 }
-                std::cout << m.cam_idx << " " << m.objects.at(j).camera_id.at(0) << " " << m.objects.at(j).category << " "
-                          << m.objects.at(j).object_id.at(0) << std::endl;
+                /* std::cout << m.cam_idx << " " << m.objects.at(j).camera_id.at(0) << " " << m.objects.at(j).category << " "
+                          << m.objects.at(j).object_id.at(0) << std::endl; */
             }
             for (int object_to_remove : objects_to_remove)
                 m.objects.erase(m.objects.begin() + object_to_remove);
@@ -268,7 +268,7 @@ int convert_category_from_dedu_to_berkeley(Categories category_dedu) {
  * ***/
 std::tuple<uint64_t, std::vector<std::tuple<int, int, int, double, double, double, double, int, int, int, int, int>>>
 compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uint8_t, uint8_t, int, int, int,
-        int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids, std::vector<uint32_t> frames) { // std::vector<uint64_t> timestamps
+        int, int>>> &input_deduplicator, std::vector<uint32_t> cam_ids, std::vector<uint32_t> frames, bool useSockets = true) { // std::vector<uint64_t> timestamps
     double latitude = 44.655540;
     double longitude = 10.934315;
     double *adfGeoTransform = (double *) calloc(6, sizeof(double));
@@ -303,7 +303,7 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
             r.idy = idy;
             message.objects.push_back(r);
             idy++;
-            std::cout << std::get<5>(info) << " " << r.latitude << " " << r.longitude << " " << r.category << std::endl;
+            // std::cout << std::get<5>(info) << " " << r.latitude << " " << r.longitude << " " << r.category << std::endl;
         }
         message.num_objects = message.objects.size();
         message.cam_idx = cam_ids[idx];
@@ -311,41 +311,44 @@ compute_deduplicator(std::vector<std::vector<std::tuple<double, double, int, uin
         idx++;
     }
 
-    // retrieving and preparing data from the cars by using a client udp socket at 18888
-    std::string ip = "192.168.12.4"; // TODO: deduplicator needs to be fixed to be executed in fog node 4
-    int port_receiving = 18888;
-    int port_sending = 18889;
 
-    Communicator<MasaMessage> *comm_send = new Communicator<MasaMessage>(SOCK_DGRAM);
-    MasaMessage *dummy = new MasaMessage;
-    prepare_message(dummy);
-    Communicator<MasaMessage> *comm_recv = new Communicator<MasaMessage>(SOCK_DGRAM);
-    // comm_recv->open_client_socket(ip, port_receiving);
-    comm_recv->open_server_socket(port_receiving);
-    std::vector<char> cstr(ip.c_str(), ip.c_str() + ip.size() + 1);
-    comm_send->open_client_socket(cstr.data(), port_sending);
+    if (useSockets) {
+        // retrieving and preparing data from the cars by using a client udp socket at 18888
+        std::string ip = "192.168.12.4"; // TODO: deduplicator needs to be fixed to be executed in fog node 4
+        int port_receiving = 18888;
+        int port_sending = 18889;
 
-    std::vector<MasaMessage> input_messages_car;
-    int socketDescClient = comm_send->get_socket();
-    int socketDesc = comm_recv->get_socket();
-    if (socketDesc != -1) {
-        input_messages_car.clear();
-        // std::cout << "Dummy message sent" << std::endl;
-        comm_send->send_message(dummy, port_sending);
-        std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch());
-        // std::cout << "Timestamp after sending " << ms.count() << std::endl;
-        receive_messages(*comm_recv, &input_messages_car);
-        // input_messages_car = deduplicator.fillTrackerInfo(input_messages_car); // not needed any more as tracker is performed in forwarder
-        for (const MasaMessage& m : input_messages_car) {
-            /* std::cout << "Receiving data from the cars with num objects: " << m.num_objects << " and source id is "
-                    << m.cam_idx<< std::endl; */
-            if (m.num_objects > 0)
-                input_messages.push_back(m);
+        Communicator<MasaMessage> *comm_send = new Communicator<MasaMessage>(SOCK_DGRAM);
+        MasaMessage *dummy = new MasaMessage;
+        prepare_message(dummy);
+        Communicator<MasaMessage> *comm_recv = new Communicator<MasaMessage>(SOCK_DGRAM);
+        // comm_recv->open_client_socket(ip, port_receiving);
+        comm_recv->open_server_socket(port_receiving);
+        std::vector<char> cstr(ip.c_str(), ip.c_str() + ip.size() + 1);
+        comm_send->open_client_socket(cstr.data(), port_sending);
+
+        std::vector<MasaMessage> input_messages_car;
+        int socketDescClient = comm_send->get_socket();
+        int socketDesc = comm_recv->get_socket();
+        if (socketDesc != -1) {
+            input_messages_car.clear();
+            // std::cout << "Dummy message sent" << std::endl;
+            comm_send->send_message(dummy, port_sending);
+            std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch());
+            // std::cout << "Timestamp after sending " << ms.count() << std::endl;
+            receive_messages(*comm_recv, &input_messages_car);
+            // input_messages_car = deduplicator.fillTrackerInfo(input_messages_car); // not needed any more as tracker is performed in forwarder
+            for (const MasaMessage& m : input_messages_car) {
+                /* std::cout << "Receiving data from the cars with num objects: " << m.num_objects << " and source id is "
+                        << m.cam_idx<< std::endl; */
+                if (m.num_objects > 0)
+                    input_messages.push_back(m);
+            }
+            close(socketDesc);
+            close(socketDescClient);
+        } else {
+            std::cout << "Could not open server socket in port_receiving " << port_receiving << std::endl;
         }
-        close(socketDesc);
-        close(socketDescClient);
-    } else {
-        std::cout << "Could not open server socket in port_receiving " << port_receiving << std::endl;
     }
 
     MasaMessage return_message;
